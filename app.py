@@ -76,9 +76,10 @@ class User(db.Model, UserMixin):
     department = db.Column(db.String(100), nullable=False)
     branch = db.Column(db.String(100), nullable=False)
     image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
-    is_active_user = db.Column(db.Boolean, default=True) 
+    is_active_user = db.Column(db.Boolean, default=True)
     hidden_announcements = db.relationship('Announcement', secondary=hidden_posts, backref='hidden_by')
-    def get_id(self): 
+
+    def get_id(self):
         return str(self.id)
 
 class Announcement(db.Model):
@@ -114,8 +115,8 @@ class PollVote(db.Model):
 class Form(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150), nullable=False)
-    category = db.Column(db.String(50), nullable=False) 
-    filename = db.Column(db.String(500), nullable=False) 
+    category = db.Column(db.String(50), nullable=False)
+    filename = db.Column(db.String(500), nullable=False)
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
 
 class IncidentReport(db.Model):
@@ -142,7 +143,7 @@ class ProfileAmendment(db.Model):
     date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
 
 @login_manager.user_loader
-def load_user(user_id): 
+def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 @app.context_processor
@@ -183,6 +184,9 @@ def send_password_reset_email(user):
     token = serializer.dumps(user.email, salt='password-reset')
     reset_url = url_for('reset_password', token=token, _external=True)
 
+    # DEV: log the reset link to the console so you can test without real email
+    app.logger.info(f"[DEV] Password reset link for {user.email}: {reset_url}")
+
     msg = Message(
         subject='BARB Staff Portal – Reset Your Password',
         recipients=[user.email]
@@ -208,11 +212,11 @@ def save_uploaded_file(form_file, folder):
     f_ext = f_ext.lower()
     picture_fn = random_hex + f_ext
     picture_path = os.path.join(folder, picture_fn)
-    
+
     # Updated allowed list for Excel and PPT
     allowed_docs = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
     allowed_images = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-    
+
     if f_ext in allowed_docs:
         form_file.save(picture_path)
         return picture_fn
@@ -224,20 +228,20 @@ def save_uploaded_file(form_file, folder):
                 i.thumbnail(output_size)
             i.save(picture_path)
             return picture_fn
-        except: 
+        except:
             return None
     return None
 
 # --- ROUTES ---
 @app.route('/')
-def home(): 
-    if current_user.is_authenticated: 
+def home():
+    if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    with app.app_context(): 
+    with app.app_context():
         db.create_all()
     if request.method == 'POST':
         email = request.form.get('email', '').lower()
@@ -386,7 +390,7 @@ def move_to_trash(post_id):
     if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin':
         return redirect(url_for('dashboard'))
     post = Announcement.query.get_or_404(post_id)
-    post.is_deleted = True 
+    post.is_deleted = True
     db.session.commit()
     flash('Moved to Recycle Bin.', 'info')
     return redirect(url_for('dashboard'))
@@ -419,9 +423,9 @@ def permanent_delete(post_id):
     if post.image_file:
         try:
             file_path = os.path.join(app.config['NEWS_FOLDER'], post.image_file)
-            if os.path.exists(file_path): 
+            if os.path.exists(file_path):
                 os.remove(file_path)
-        except: 
+        except:
             pass
     db.session.delete(post)
     db.session.commit()
@@ -438,9 +442,9 @@ def empty_trash():
         if post.image_file:
             try:
                 file_path = os.path.join(app.config['NEWS_FOLDER'], post.image_file)
-                if os.path.exists(file_path): 
+                if os.path.exists(file_path):
                     os.remove(file_path)
-            except: 
+            except:
                 pass
         db.session.delete(post)
     db.session.commit()
@@ -458,13 +462,13 @@ def news_portal():
         body = request.form.get('body')
         category = 'HR' if current_user.department == 'HR' else 'IT'
         allow_download = True if request.form.get('allow_download') else False
-        
+
         image_filename = None
         if 'news_image' in request.files:
             file = request.files['news_image']
             if file.filename != '':
                 saved = save_uploaded_file(file, app.config['NEWS_FOLDER'])
-                if saved: 
+                if saved:
                     image_filename = saved
                 else:
                     flash('File error.', 'danger')
