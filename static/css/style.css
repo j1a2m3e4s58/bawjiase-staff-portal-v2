@@ -247,3 +247,53 @@ body.dark-mode thead th {
 
 /* Animations */
 @keyframes floatUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+/* ---------- ONLY CHANGE ADDED BELOW ---------- */
+/* Make welcome banner text white on green glass card */
+.glass-card.bg-success h1,
+.glass-card.bg-success h2,
+.glass-card.bg-success h3,
+.glass-card.bg-success h4,
+.glass-card.bg-success p {
+    color: #ffffff !important;
+}
+
+/* Auth layout for login & register pages */
+.auth-wrapper {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    position: relative;
+    z-index: 3; /* above bg-image & overlay */
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 450px;
+    border-radius: 20px;
+}
+
+/* Mobile optimisation for auth screens */
+@media (max-width: 576px) {
+    .auth-wrapper {
+        padding: 1.5rem 0.75rem;
+    }
+
+    .auth-card {
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .auth-card .card-body {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .auth-card .form-control,
+    .auth-card .form-select,
+    .auth-card .btn {
+        font-size: 0.95rem;
+        padding: 0.55rem 0.75rem;
+    }
+}
