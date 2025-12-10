@@ -9,24 +9,20 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from flask_bcrypt import Bcrypt
 from datetime import datetime
 from flask_mail import Mail, Message
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 app = Flask(__name__)
-# Use a fallback secret key so sessions don't crash if env var is missing
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'bawjiase-secure-key-2025') 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///bawjiase.db')
+app.config['SECRET_KEY'] = 'bawjiase-secure-key-2025'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bawjiase.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- EMAIL CONFIGURATION ---
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
-
-mail = Mail(app)
-s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+# Email configuration (replace with your real SMTP credentials)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'your_email@example.com'          # change this
+app.config['MAIL_PASSWORD'] = 'your_email_app_password_here'    # change this
+app.config['MAIL_DEFAULT_SENDER'] = ('BARB Staff Portal', 'your_email@example.com')  # change this
 
 # CONFIGURE FOLDERS
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -41,6 +37,10 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Email + token tools
+mail = Mail(app)
+serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
 # --- ASSOCIATION TABLE ---
 hidden_posts = db.Table('hidden_posts',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
@@ -53,14 +53,14 @@ class User(db.Model, UserMixin):
     fullname = db.Column(db.String(150), nullable=False)
     phone = db.Column(db.String(20), nullable=False, default="N/A")
     email = db.Column(db.String(150), unique=True, nullable=False)
+    email_verified = db.Column(db.Boolean, default=False)  # NEW FIELD
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(50), default='General Staff')
     position = db.Column(db.String(100), nullable=True, default='Staff')
     department = db.Column(db.String(100), nullable=False)
     branch = db.Column(db.String(100), nullable=False)
     image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
-    is_active_user = db.Column(db.Boolean, default=True)
-    is_verified = db.Column(db.Boolean, default=False)
+    is_active_user = db.Column(db.Boolean, default=True) 
     hidden_announcements = db.relationship('Announcement', secondary=hidden_posts, backref='hidden_by')
     def get_id(self): return str(self.id)
 
@@ -124,42 +124,41 @@ class ProfileAmendment(db.Model):
     status = db.Column(db.String(20), default='Open')
     date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
 
-# --- SAFEGUARD: LOAD USER ---
 @login_manager.user_loader
-def load_user(user_id): 
-    try:
-        return db.session.get(User, int(user_id))
-    except:
-        return None
-
-# --- SAFEGUARD: CREATE TABLES ON STARTUP ---
-with app.app_context():
-    try:
-        db.create_all()
-    except Exception as e:
-        print(f"DB Creation Error (Ignorable if already exists): {e}")
-
-# --- SAFEGUARD: CHECK DB BEFORE REQUESTS ---
-@app.before_request
-def check_db():
-    # Only run this check on the first request to ensure tables exist
-    if not hasattr(app, 'db_checked'):
-        with app.app_context():
-            db.create_all()
-        app.db_checked = True
+def load_user(user_id): return db.session.get(User, int(user_id))
 
 @app.context_processor
 def inject_notifications():
     if current_user.is_authenticated:
-        try:
-            if current_user.department == 'IT' or current_user.role == 'Super Admin':
-                incident_count = IncidentReport.query.filter_by(status='Open').count()
-                amendment_count = ProfileAmendment.query.filter_by(status='Open').count()
-                return dict(unread_count=incident_count + amendment_count)
-        except:
-            # If DB tables are missing, return 0 instead of crashing
-            return dict(unread_count=0)
+        if current_user.department == 'IT' or current_user.role == 'Super Admin':
+            incident_count = IncidentReport.query.filter_by(status='Open').count()
+            amendment_count = ProfileAmendment.query.filter_by(status='Open').count()
+            return dict(unread_count=incident_count + amendment_count)
     return dict(unread_count=0)
+
+# --- EMAIL VERIFICATION HELPERS ---
+def send_verification_email(user):
+    token = serializer.dumps(user.id, salt='email-confirm')
+    verify_url = url_for('verify_email', token=token, _external=True)
+
+    msg = Message(
+        subject='Verify your BARB Staff Portal account',
+        recipients=[user.email],
+    )
+    msg.body = f"""Dear {user.fullname},
+
+Welcome to the Bawjiase Area Rural Bank Staff Portal.
+
+Please click the link below to verify your email and activate your account:
+
+{verify_url}
+
+If you did not create this account, you can safely ignore this email.
+
+Thank you.
+BARB ICT Unit
+"""
+    mail.send(msg)
 
 def save_uploaded_file(form_file, folder):
     random_hex = secrets.token_hex(8)
@@ -167,8 +166,11 @@ def save_uploaded_file(form_file, folder):
     f_ext = f_ext.lower()
     picture_fn = random_hex + f_ext
     picture_path = os.path.join(folder, picture_fn)
+    
+    # Updated allowed list for Excel and PPT
     allowed_docs = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
     allowed_images = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+    
     if f_ext in allowed_docs:
         form_file.save(picture_path)
         return picture_fn
@@ -183,16 +185,6 @@ def save_uploaded_file(form_file, folder):
         except: return None
     return None
 
-# --- SECRET ADMIN ROUTE ---
-@app.route('/make-me-admin')
-@login_required
-def make_me_admin():
-    current_user.role = 'Super Admin'
-    current_user.department = 'IT'
-    db.session.commit()
-    flash('You are now Super Admin!', 'success')
-    return redirect(url_for('dashboard'))
-
 # --- ROUTES ---
 @app.route('/')
 def home(): 
@@ -201,15 +193,15 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # DOUBLE CHECK: Ensure DB exists right when hitting login
-    with app.app_context():
-        db.create_all()
-        
+    with app.app_context(): db.create_all()
     if request.method == 'POST':
-        user = User.query.filter_by(email=request.form.get('email').lower()).first()
+        email = request.form.get('email', '').lower()
+        user = User.query.filter_by(email=email).first()
         if user and bcrypt.check_password_hash(user.password, request.form.get('password')):
-            if not user.is_verified:
-                flash('Please check your email to verify your account first.', 'warning')
+            # Block login if email not verified
+            if not user.email_verified:
+                flash('Please verify your email address before logging in. We have sent you a new verification email.', 'warning')
+                send_verification_email(user)
                 return redirect(url_for('login'))
             login_user(user)
             return redirect(url_for('dashboard'))
@@ -219,93 +211,54 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form.get('email').lower()
+        email = request.form.get('email', '').lower()
         if User.query.filter_by(email=email).first():
-            flash('Email already registered.', 'warning')
+            flash('An account with this email already exists.', 'warning')
             return redirect(url_for('register'))
-        
         pw = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
-        user = User(fullname=request.form.get('fullname'), phone=request.form.get('phone'), email=email, password=pw, department=request.form.get('department'), branch=request.form.get('branch'), is_verified=False)
+        user = User(
+            fullname=request.form.get('fullname'),
+            phone=request.form.get('phone'),
+            email=email,
+            password=pw,
+            department=request.form.get('department'),
+            branch=request.form.get('branch')
+        )
+        user.email_verified = False
         db.session.add(user)
         db.session.commit()
-
-        try:
-            token = s.dumps(email, salt='email-confirm')
-            msg = Message('Confirm Email - Bawjiase Staff Portal', recipients=[email])
-            link = url_for('confirm_email', token=token, _external=True)
-            msg.body = f'Your confirmation link is {link}'
-            mail.send(msg)
-            flash('Account created! Verification link sent to email.', 'info')
-        except Exception as e:
-            print(f"Email error: {e}")
-            flash('Account created, but email failed to send. Contact IT Support.', 'warning')
+        send_verification_email(user)
+        flash('Account created! Please check your email to verify your account before logging in.', 'info')
         return redirect(url_for('login'))
     return render_template('register.html')
 
-@app.route('/confirm_email/<token>')
-def confirm_email(token):
+@app.route('/verify/<token>')
+def verify_email(token):
     try:
-        email = s.loads(token, salt='email-confirm', max_age=3600)
+        user_id = serializer.loads(token, salt='email-confirm', max_age=60 * 60 * 24)  # 24 hours
     except SignatureExpired:
-        flash('The token is expired.', 'danger')
+        flash('Verification link has expired. Please log in to request a new verification email.', 'warning')
         return redirect(url_for('login'))
-    except BadTimeSignature:
-        flash('Invalid token.', 'danger')
+    except BadSignature:
+        flash('Invalid verification link.', 'danger')
         return redirect(url_for('login'))
-    user = User.query.filter_by(email=email).first_or_404()
-    if user.is_verified:
-        flash('Account already verified.', 'success')
+
+    user = User.query.get(user_id)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('login'))
+
+    if user.email_verified:
+        flash('Email already verified. You can log in.', 'info')
     else:
-        user.is_verified = True
+        user.email_verified = True
         db.session.commit()
-        flash('Email verified! You can now login.', 'success')
+        flash('Your email has been verified. You can now log in.', 'success')
+
     return redirect(url_for('login'))
 
-@app.route('/forgot-password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        email = request.form.get('email').lower()
-        user = User.query.filter_by(email=email).first()
-        if user:
-            try:
-                token = s.dumps(email, salt='password-reset')
-                msg = Message('Password Reset - Bawjiase Staff Portal', recipients=[email])
-                link = url_for('reset_token', token=token, _external=True)
-                msg.body = f'Click here to reset your password: {link}'
-                mail.send(msg)
-                flash('Reset link sent to your email.', 'info')
-            except Exception as e:
-                flash('Error sending email. Try again later.', 'danger')
-        else:
-            flash('Email not found.', 'danger')
-        return redirect(url_for('login'))
-    return render_template('forgot_password.html')
-
-@app.route('/reset_password/<token>', methods=['GET', 'POST'])
-def reset_token(token):
-    try:
-        email = s.loads(token, salt='password-reset', max_age=1800)
-    except SignatureExpired:
-        flash('Token expired. Try again.', 'danger')
-        return redirect(url_for('forgot_password'))
-    except BadTimeSignature:
-        flash('Invalid token.', 'danger')
-        return redirect(url_for('forgot_password'))
-    
-    if request.method == 'POST':
-        pw = request.form.get('password')
-        confirm_pw = request.form.get('confirm_password')
-        if pw != confirm_pw:
-            flash('Passwords do not match.', 'danger')
-            return render_template('reset_token.html', token=token)
-        
-        user = User.query.filter_by(email=email).first_or_404()
-        user.password = bcrypt.generate_password_hash(pw).decode('utf-8')
-        db.session.commit()
-        flash('Password updated! You can login now.', 'success')
-        return redirect(url_for('login'))
-    
-    return render_template('reset_token.html', token=token)
+@app.route('/forgot-password')
+def forgot_password(): return render_template('forgot_password.html')
 
 @app.route('/dashboard')
 @login_required
@@ -396,11 +349,13 @@ def empty_trash():
 def news_portal():
     if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin':
         return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
         title = request.form.get('title')
         body = request.form.get('body')
         category = 'HR' if current_user.department == 'HR' else 'IT'
         allow_download = True if request.form.get('allow_download') else False
+        
         image_filename = None
         if 'news_image' in request.files:
             file = request.files['news_image']
@@ -410,9 +365,11 @@ def news_portal():
                 else:
                     flash('File error.', 'danger')
                     return redirect(url_for('news_portal'))
+
         post = Announcement(title=title, body=body, category=category, author=current_user.fullname, image_file=image_filename, allow_download=allow_download)
         db.session.add(post)
         db.session.commit()
+
         poll_q = request.form.get('poll_question')
         if poll_q:
             poll = Poll(question=poll_q, announcement_id=post.id)
@@ -421,8 +378,10 @@ def news_portal():
             for opt in request.form.getlist('poll_options'):
                 if opt.strip(): db.session.add(PollOption(text=opt, poll_id=poll.id))
             db.session.commit()
+
         flash('News Posted Successfully!', 'success')
         return redirect(url_for('news_portal'))
+
     return render_template('news_portal.html', user=current_user)
 
 @app.route('/edit-post/<int:post_id>', methods=['POST'])
@@ -526,7 +485,7 @@ def resolve_ticket(type, id):
 @app.route('/export-data/<string:type>')
 @login_required
 def export_data(type):
-    if current_user.department != 'IT' and current_user.role != 'Super Admin': return redirect(url_for('dashboard'))
+    if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin': return redirect(url_for('dashboard'))
     si = io.StringIO(); cw = csv.writer(si)
     if type == 'incidents':
         records = IncidentReport.query.all()
@@ -551,4 +510,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
+    with app.app_context(): db.create_all()
     app.run(debug=True)
