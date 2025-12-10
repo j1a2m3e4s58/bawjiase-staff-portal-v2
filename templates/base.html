@@ -4,156 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bawjiase Staff Portal</title>
-
-    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-    <style>
-        /* --- GLASSMOPHISM & BASE STYLES --- */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        /* --- MOBILE LAYOUT FIXES --- */
-        @media (max-width: 768px) {
-            .glass-card {
-                border-radius: 10px;
-                padding: 1rem !important;
-            }
-            .container-fluid {
-                padding-left: 10px;
-                padding-right: 10px;
-            }
-            .navbar-brand img {
-                width: 35px;
-                height: 35px;
-            }
-            .navbar-brand span {
-                font-size: 0.8rem;
-            }
-            .alert-container {
-                width: 95% !important;
-                left: 2.5% !important;
-                transform: none !important;
-            }
-        }
-
-        /* --- DARK MODE STYLES --- */
-        body.dark-mode {
-            background: #121212 !important;
-            color: #e0e0e0 !important;
-        }
-
-        body.dark-mode .glass-card {
-            background: rgba(30, 30, 30, 0.85) !important;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            color: #e0e0e0 !important;
-        }
-
-        body.dark-mode *,
-        body.dark-mode .text-muted,
-        body.dark-mode .text-secondary,
-        body.dark-mode .text-dark,
-        body.dark-mode h1,
-        body.dark-mode h2,
-        body.dark-mode h3,
-        body.dark-mode h4,
-        body.dark-mode h5,
-        body.dark-mode h6 {
-            color: #e0e0e0 !important;
-        }
-
-        body.dark-mode .form-control,
-        body.dark-mode .form-select,
-        body.dark-mode .input-group-text {
-            background-color: #2c2c2c !important;
-            border-color: #444 !important;
-            color: #fff !important;
-        }
-
-        body.dark-mode .form-control::placeholder {
-            color: #888 !important;
-        }
-
-        body.dark-mode .btn-light {
-            background-color: #333 !important;
-            border-color: #444 !important;
-            color: #fff !important;
-        }
-
-        body.dark-mode .dropdown-menu {
-            background-color: #2c2c2c !important;
-            border-color: #444;
-        }
-
-        body.dark-mode .dropdown-item {
-            color: #e0e0e0 !important;
-        }
-
-        body.dark-mode .dropdown-item:hover {
-            background-color: #444 !important;
-        }
-    </style>
 </head>
+<body>
 
-<body {% if request.cookies.get('theme') == 'dark' %}class="dark-mode"{% endif %}>
-
-    <!-- Dark / Light toggle button -->
-    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
-        <button id="themeToggle"
-                class="btn btn-dark rounded-circle shadow-lg"
-                style="width: 50px; height: 50px;"
-                onclick="toggleTheme()">
+    <div class="theme-switch-wrapper">
+        <button id="themeToggle" class="btn btn-circle shadow-lg" onclick="toggleTheme()">
             <i class="fas fa-moon" id="themeIcon"></i>
         </button>
     </div>
 
     {% if request.endpoint in ['login', 'register', 'forgot_password'] %}
-        <!-- Background image for auth pages -->
-        <div class="bg-image"
-             style="
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: -1;
-                background-image: url('/static/img/background.jpg');
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: cover;
-             ">
-        </div>
-
-        <!-- Dark overlay -->
-        <div class="bg-overlay"
-             style="
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: -1;
-                background: rgba(0, 0, 0, 0.6);
-             ">
-        </div>
+        <div class="bg-image"></div>
+        <div class="bg-overlay"></div>
     {% endif %}
 
-    <!-- Flash messages -->
-    <div class="alert-container container position-absolute top-0 start-50 translate-middle-x mt-3"
+    <!-- Flash messages: centered, mobile-friendly width -->
+    <div class="container position-fixed top-0 start-50 translate-middle-x mt-3 px-2"
          style="z-index: 9999; max-width: 600px;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} shadow-lg text-center fw-bold fade-in"
+                    <div class="alert alert-{{ category }} shadow-lg text-center fw-bold fade-in mb-2"
                          role="alert"
                          id="flashMessage">
                         {{ message }}
@@ -163,44 +37,42 @@
         {% endwith %}
     </div>
 
-    <!-- Page-specific content -->
     {% block content %}{% endblock %}
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
+    
     <script>
-        // Auto-dismiss flash message
-        setTimeout(function () {
+        // 1. Auto-Dismiss Flash Messages
+        setTimeout(function() {
             var flash = document.getElementById('flashMessage');
             if (flash) {
                 flash.style.transition = "opacity 1s ease-out";
                 flash.style.opacity = 0;
-                setTimeout(function () {
-                    flash.remove();
-                }, 1000);
+                setTimeout(function(){ flash.remove(); }, 1000);
             }
         }, 5000);
 
-        // Dark mode toggle
+        // 2. Dark Mode Logic
+        const toggleBtn = document.getElementById('themeToggle');
         const icon = document.getElementById('themeIcon');
         const body = document.body;
 
-        // Set initial icon
-        if (body.classList.contains('dark-mode')) {
+        // Check LocalStorage on Load
+        if (localStorage.getItem('theme') === 'dark') {
+            body.classList.add('dark-mode');
             icon.classList.remove('fa-moon');
             icon.classList.add('fa-sun');
         }
 
         function toggleTheme() {
             body.classList.toggle('dark-mode');
-
+            
             if (body.classList.contains('dark-mode')) {
-                document.cookie = "theme=dark; path=/; max-age=31536000"; // 1 year
+                localStorage.setItem('theme', 'dark');
                 icon.classList.remove('fa-moon');
                 icon.classList.add('fa-sun');
             } else {
-                document.cookie = "theme=light; path=/; max-age=31536000";
+                localStorage.setItem('theme', 'light');
                 icon.classList.remove('fa-sun');
                 icon.classList.add('fa-moon');
             }
