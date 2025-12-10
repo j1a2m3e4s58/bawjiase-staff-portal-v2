@@ -12,11 +12,12 @@ from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 
 app = Flask(__name__)
+# Use a fallback secret key so sessions don't crash if env var is missing
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'bawjiase-secure-key-2025') 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///bawjiase.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- PRO EMAIL CONFIGURATION ---
+# --- EMAIL CONFIGURATION ---
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
@@ -123,21 +124,41 @@ class ProfileAmendment(db.Model):
     status = db.Column(db.String(20), default='Open')
     date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
 
-# --- CRITICAL FIX: CREATE TABLES AUTOMATICALLY ON RENDER ---
-# This runs every time the app loads, ensuring the DB exists before login
-with app.app_context():
-    db.create_all()
-
+# --- SAFEGUARD: LOAD USER ---
 @login_manager.user_loader
-def load_user(user_id): return db.session.get(User, int(user_id))
+def load_user(user_id): 
+    try:
+        return db.session.get(User, int(user_id))
+    except:
+        return None
+
+# --- SAFEGUARD: CREATE TABLES ON STARTUP ---
+with app.app_context():
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"DB Creation Error (Ignorable if already exists): {e}")
+
+# --- SAFEGUARD: CHECK DB BEFORE REQUESTS ---
+@app.before_request
+def check_db():
+    # Only run this check on the first request to ensure tables exist
+    if not hasattr(app, 'db_checked'):
+        with app.app_context():
+            db.create_all()
+        app.db_checked = True
 
 @app.context_processor
 def inject_notifications():
     if current_user.is_authenticated:
-        if current_user.department == 'IT' or current_user.role == 'Super Admin':
-            incident_count = IncidentReport.query.filter_by(status='Open').count()
-            amendment_count = ProfileAmendment.query.filter_by(status='Open').count()
-            return dict(unread_count=incident_count + amendment_count)
+        try:
+            if current_user.department == 'IT' or current_user.role == 'Super Admin':
+                incident_count = IncidentReport.query.filter_by(status='Open').count()
+                amendment_count = ProfileAmendment.query.filter_by(status='Open').count()
+                return dict(unread_count=incident_count + amendment_count)
+        except:
+            # If DB tables are missing, return 0 instead of crashing
+            return dict(unread_count=0)
     return dict(unread_count=0)
 
 def save_uploaded_file(form_file, folder):
@@ -180,6 +201,10 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # DOUBLE CHECK: Ensure DB exists right when hitting login
+    with app.app_context():
+        db.create_all()
+        
     if request.method == 'POST':
         user = User.query.filter_by(email=request.form.get('email').lower()).first()
         if user and bcrypt.check_password_hash(user.password, request.form.get('password')):
