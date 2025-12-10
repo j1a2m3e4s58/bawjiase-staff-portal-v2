@@ -1,110 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Password Reset Link Sent</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+{% extends "base.html" %}
 
-    <!-- Bootstrap 5 -->
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
+{% block content %}
+<style>
+    .reset-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 4px solid rgba(13, 110, 253, 0.2);
+        border-top-color: #0d6efd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px auto;
+        animation: spin 1s ease-out forwards;
+        position: relative;
+    }
+    .reset-circle i {
+        font-size: 40px;
+        color: #0d6efd;
+        opacity: 0;
+        transform: scale(0.4);
+        animation: pop-in 0.6s ease-out forwards;
+        animation-delay: 0.9s;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        90% { transform: rotate(360deg); }
+        100% { transform: rotate(360deg); border-color: #0d6efd; }
+    }
+    @keyframes pop-in {
+        0% { opacity: 0; transform: scale(0.4); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+</style>
 
-    <!-- Icons -->
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-        rel="stylesheet"
-    >
+<div class="container d-flex justify-content-center align-items-center min-vh-100 py-4 px-2">
+    <div class="card glass-card p-4 text-center"
+         style="width: 100%; max-width: 380px; min-height: 320px;">
 
-    <style>
-        body {
-            background: linear-gradient(135deg, #004d40, #00695c);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #333;
-        }
+        <div class="reset-circle">
+            <i class="fas fa-envelope-open-text"></i>
+        </div>
 
-        .success-card {
-            background: #ffffff;
-            border-radius: 18px;
-            padding: 40px 30px;
-            max-width: 420px;
-            width: 100%;
-            text-align: center;
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
-            animation: popIn 0.6s ease-out;
-        }
+        <h5 class="fw-bold mb-2">Password Reset Link Sent</h5>
+        <p class="text-secondary small mb-2">
+            If the email you entered exists in our system,
+            a password reset link has been sent successfully.
+        </p>
+        <p class="text-muted small mb-3">
+            Please check your inbox or spam/junk folder to continue
+            resetting your password.
+        </p>
 
-        @keyframes popIn {
-            from {
-                transform: scale(0.85);
-                opacity: 0;
-            }
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        .icon-success {
-            font-size: 70px;
-            color: #2e7d32;
-            margin-bottom: 15px;
-            animation: pulse 1.6s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.08); }
-            100% { transform: scale(1); }
-        }
-
-        .countdown {
-            font-size: 14px;
-            color: #6c757d;
-            margin-top: 18px;
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="success-card">
-    <div class="icon-success">
-        <i class="bi bi-check-circle-fill"></i>
+        <a href="{{ url_for('login') }}"
+           class="btn btn-success w-100 fw-bold">
+            Back to Login
+        </a>
     </div>
-
-    <h4 class="fw-bold mb-2">Reset Link Sent</h4>
-
-    <p class="mb-3">
-        If an account exists with the email you entered, a password reset link
-        has been sent. Please check your inbox and spam folder.
-    </p>
-
-    <p class="countdown" id="countdown">
-        Redirecting to login in 7 seconds…
-    </p>
 </div>
 
 <script>
-    let seconds = 7;
-    const countdownEl = document.getElementById("countdown");
-
-    const interval = setInterval(() => {
-        seconds--;
-        countdownEl.textContent = `Redirecting to login in ${seconds} seconds…`;
-        if (seconds <= 0) {
-            clearInterval(interval);
-        }
-    }, 1000);
-
-    setTimeout(() => {
+    // Auto redirect to login after a longer delay (7 seconds)
+    setTimeout(function () {
         window.location.href = "{{ url_for('login') }}";
     }, 7000);
 </script>
-
-</body>
-</html>
+{% endblock %}
