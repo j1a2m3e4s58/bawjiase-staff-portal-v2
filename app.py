@@ -379,8 +379,6 @@ def verify_email(token):
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
-    reset_sent = False
-
     if request.method == 'POST':
         email = (request.form.get('email') or "").strip().lower()
         if email:
@@ -392,10 +390,12 @@ def forgot_password():
                 except Exception:
                     # Fail silently for the user; you can log errors internally
                     pass
-        # Always show success state to avoid email enumeration
-        reset_sent = True
 
-    return render_template('forgot_password.html', reset_sent=reset_sent)
+        # Instead of reloading the same page, show a nice success animation
+        return render_template('reset_link_sent.html')
+
+    # First time loading the page (GET)
+    return render_template('forgot_password.html', reset_sent=False)
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
