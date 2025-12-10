@@ -12,12 +12,11 @@ from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'bawjiase-secure-key-2025') # Secure fallback
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'bawjiase-secure-key-2025') 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///bawjiase.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- PRO EMAIL CONFIGURATION (LOADS FROM RENDER) ---
-# This allows you to use your official bank email (Outlook, cPanel, or Gmail)
+# --- PRO EMAIL CONFIGURATION ---
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
@@ -124,6 +123,11 @@ class ProfileAmendment(db.Model):
     status = db.Column(db.String(20), default='Open')
     date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
 
+# --- CRITICAL FIX: CREATE TABLES AUTOMATICALLY ON RENDER ---
+# This runs every time the app loads, ensuring the DB exists before login
+with app.app_context():
+    db.create_all()
+
 @login_manager.user_loader
 def load_user(user_id): return db.session.get(User, int(user_id))
 
@@ -158,7 +162,7 @@ def save_uploaded_file(form_file, folder):
         except: return None
     return None
 
-# --- SECRET ADMIN ROUTE (RUN ONCE, THEN REMOVE) ---
+# --- SECRET ADMIN ROUTE ---
 @app.route('/make-me-admin')
 @login_required
 def make_me_admin():
@@ -176,7 +180,6 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    with app.app_context(): db.create_all()
     if request.method == 'POST':
         user = User.query.filter_by(email=request.form.get('email').lower()).first()
         if user and bcrypt.check_password_hash(user.password, request.form.get('password')):
@@ -523,5 +526,4 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    with app.app_context(): db.create_all()
     app.run(debug=True)
