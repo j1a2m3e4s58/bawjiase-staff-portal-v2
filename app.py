@@ -16,13 +16,29 @@ app.config['SECRET_KEY'] = 'bawjiase-secure-key-2025'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bawjiase.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Email configuration (replace with your real SMTP credentials)
+# ===============================
+# EMAIL CONFIGURATION (DEV MODE)
+# ===============================
+
+# Using Gmail SMTP as transport (can be swapped to bank SMTP later).
+# Email address is strictly the bank domain as requested.
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your_email@example.com'          # change this
-app.config['MAIL_PASSWORD'] = 'your_email_app_password_here'    # change this
-app.config['MAIL_DEFAULT_SENDER'] = ('BARB Staff Portal', 'your_email@example.com')  # change this
+app.config['MAIL_USE_SSL'] = False
+
+# DEV EMAIL + PASSWORD (PLACEHOLDER)
+# This email is what will appear as the sender.
+# The password string is NOT used while MAIL_SUPPRESS_SEND = True.
+app.config['MAIL_USERNAME'] = 'no-reply@bawjiasearearuralbank.com'
+app.config['MAIL_PASSWORD'] = 'DEV_ONLY_PLACEHOLDER_PASSWORD'
+
+# Default sender for all outgoing emails in the portal
+app.config['MAIL_DEFAULT_SENDER'] = ('BARB Staff Portal', 'no-reply@bawjiasearearuralbank.com')
+
+# DEV ONLY – emails will NOT actually be sent.
+# TODO: REMOVE THIS LINE and set a real SMTP password before going live.
+app.config['MAIL_SUPPRESS_SEND'] = True
 
 # CONFIGURE FOLDERS
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -62,7 +78,8 @@ class User(db.Model, UserMixin):
     image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
     is_active_user = db.Column(db.Boolean, default=True) 
     hidden_announcements = db.relationship('Announcement', secondary=hidden_posts, backref='hidden_by')
-    def get_id(self): return str(self.id)
+    def get_id(self): 
+        return str(self.id)
 
 class Announcement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -125,7 +142,8 @@ class ProfileAmendment(db.Model):
     date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
 
 @login_manager.user_loader
-def load_user(user_id): return db.session.get(User, int(user_id))
+def load_user(user_id): 
+    return db.session.get(User, int(user_id))
 
 @app.context_processor
 def inject_notifications():
@@ -206,18 +224,21 @@ def save_uploaded_file(form_file, folder):
                 i.thumbnail(output_size)
             i.save(picture_path)
             return picture_fn
-        except: return None
+        except: 
+            return None
     return None
 
 # --- ROUTES ---
 @app.route('/')
 def home(): 
-    if current_user.is_authenticated: return redirect(url_for('dashboard'))
+    if current_user.is_authenticated: 
+        return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    with app.app_context(): db.create_all()
+    with app.app_context(): 
+        db.create_all()
     if request.method == 'POST':
         email = request.form.get('email', '').lower()
         user = User.query.filter_by(email=email).first()
@@ -398,8 +419,10 @@ def permanent_delete(post_id):
     if post.image_file:
         try:
             file_path = os.path.join(app.config['NEWS_FOLDER'], post.image_file)
-            if os.path.exists(file_path): os.remove(file_path)
-        except: pass
+            if os.path.exists(file_path): 
+                os.remove(file_path)
+        except: 
+            pass
     db.session.delete(post)
     db.session.commit()
     flash('Permanently Deleted.', 'danger')
@@ -415,8 +438,10 @@ def empty_trash():
         if post.image_file:
             try:
                 file_path = os.path.join(app.config['NEWS_FOLDER'], post.image_file)
-                if os.path.exists(file_path): os.remove(file_path)
-            except: pass
+                if os.path.exists(file_path): 
+                    os.remove(file_path)
+            except: 
+                pass
         db.session.delete(post)
     db.session.commit()
     flash('Bin Emptied.', 'warning')
@@ -439,7 +464,8 @@ def news_portal():
             file = request.files['news_image']
             if file.filename != '':
                 saved = save_uploaded_file(file, app.config['NEWS_FOLDER'])
-                if saved: image_filename = saved
+                if saved: 
+                    image_filename = saved
                 else:
                     flash('File error.', 'danger')
                     return redirect(url_for('news_portal'))
