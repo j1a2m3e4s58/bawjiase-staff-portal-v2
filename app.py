@@ -252,7 +252,11 @@ def register():
         db.session.add(user)
         db.session.commit()
         send_verification_email(user)
-        flash('Account created! Please check your email to verify your account before logging in.', 'info')
+        # UPDATED MESSAGE
+        flash(
+            'Account created. Check your email and click the verification link before logging in.',
+            'info'
+        )
         return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -440,7 +444,14 @@ def news_portal():
                     flash('File error.', 'danger')
                     return redirect(url_for('news_portal'))
 
-        post = Announcement(title=title, body=body, category=category, author=current_user.fullname, image_file=image_filename, allow_download=allow_download)
+        post = Announcement(
+            title=title,
+            body=body,
+            category=category,
+            author=current_user.fullname,
+            image_file=image_filename,
+            allow_download=allow_download
+        )
         db.session.add(post)
         db.session.commit()
 
@@ -450,7 +461,8 @@ def news_portal():
             db.session.add(poll)
             db.session.commit()
             for opt in request.form.getlist('poll_options'):
-                if opt.strip(): db.session.add(PollOption(text=opt, poll_id=poll.id))
+                if opt.strip():
+                    db.session.add(PollOption(text=opt, poll_id=poll.id))
             db.session.commit()
 
         flash('News Posted Successfully!', 'success')
@@ -467,12 +479,14 @@ def edit_post(post_id):
     post.title = request.form.get('title')
     post.body = request.form.get('body')
     post.allow_download = True if request.form.get('allow_download') else False
-    if request.form.get('remove_file'): post.image_file = None
+    if request.form.get('remove_file'):
+        post.image_file = None
     if 'news_image' in request.files:
         file = request.files['news_image']
         if file.filename != '':
             saved = save_uploaded_file(file, app.config['NEWS_FOLDER'])
-            if saved: post.image_file = saved
+            if saved:
+                post.image_file = saved
     db.session.commit()
     flash('Updated!', 'success')
     return redirect(url_for('dashboard'))
@@ -489,7 +503,12 @@ def vote(poll_id, option_id):
 
 @app.route('/directory')
 @login_required
-def directory(): return render_template('directory.html', user=current_user, directory=User.query.order_by(User.fullname).all())
+def directory():
+    return render_template(
+        'directory.html',
+        user=current_user,
+        directory=User.query.order_by(User.fullname).all()
+    )
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -503,7 +522,8 @@ def profile():
             file = request.files['profile_pic']
             if file.filename != '':
                 saved = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
-                if saved: current_user.image_file = saved
+                if saved:
+                    current_user.image_file = saved
         db.session.commit()
         return redirect(url_for('profile'))
     image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
@@ -512,7 +532,8 @@ def profile():
 @app.route('/admin-update-staff', methods=['POST'])
 @login_required
 def admin_update_staff():
-    if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin': return redirect(url_for('directory'))
+    if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin':
+        return redirect(url_for('directory'))
     staff = User.query.get(request.form.get('user_id'))
     if staff:
         staff.position = request.form.get('position')
@@ -523,7 +544,12 @@ def admin_update_staff():
 
 @app.route('/forms')
 @login_required
-def forms(): return render_template('forms.html', user=current_user, forms=Form.query.order_by(Form.category).all())
+def forms():
+    return render_template(
+        'forms.html',
+        user=current_user,
+        forms=Form.query.order_by(Form.category).all()
+    )
 
 @app.route('/it-support', methods=['GET', 'POST'])
 @login_required
@@ -531,11 +557,26 @@ def it_support():
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         if form_type == 'incident':
-            db.session.add(IncidentReport(agency=request.form.get('agency'), issue_category=request.form.get('issue'), description=request.form.get('description'), reporter_name=request.form.get('reporter_name'), contact=request.form.get('contact')))
+            db.session.add(IncidentReport(
+                agency=request.form.get('agency'),
+                issue_category=request.form.get('issue'),
+                description=request.form.get('description'),
+                reporter_name=request.form.get('reporter_name'),
+                contact=request.form.get('contact')
+            ))
             db.session.commit()
             flash('Incident Report Submitted!', 'success_modal')
         elif form_type == 'amendment':
-            db.session.add(ProfileAmendment(fullname=request.form.get('fullname'), phone=request.form.get('phone'), t24_username=request.form.get('t24_username'), agency=request.form.get('agency'), request_type=request.form.get('request_type'), new_role=request.form.get('new_role'), dept_change=request.form.get('dept_change'), transfer_location=request.form.get('transfer_location')))
+            db.session.add(ProfileAmendment(
+                fullname=request.form.get('fullname'),
+                phone=request.form.get('phone'),
+                t24_username=request.form.get('t24_username'),
+                agency=request.form.get('agency'),
+                request_type=request.form.get('request_type'),
+                new_role=request.form.get('new_role'),
+                dept_change=request.form.get('dept_change'),
+                transfer_location=request.form.get('transfer_location')
+            ))
             db.session.commit()
             flash('Request Submitted!', 'success_modal')
         return redirect(url_for('it_support'))
@@ -544,37 +585,74 @@ def it_support():
 @app.route('/it-notifications')
 @login_required
 def it_notifications():
-    if current_user.department != 'IT' and current_user.role != 'Super Admin': return redirect(url_for('dashboard'))
-    return render_template('it_notifications.html', user=current_user, incidents=IncidentReport.query.order_by(IncidentReport.status.desc(), IncidentReport.date_submitted.desc()).all(), amendments=ProfileAmendment.query.order_by(ProfileAmendment.status.desc(), ProfileAmendment.date_submitted.desc()).all())
+    if current_user.department != 'IT' and current_user.role != 'Super Admin':
+        return redirect(url_for('dashboard'))
+    return render_template(
+        'it_notifications.html',
+        user=current_user,
+        incidents=IncidentReport.query.order_by(
+            IncidentReport.status.desc(),
+            IncidentReport.date_submitted.desc()
+        ).all(),
+        amendments=ProfileAmendment.query.order_by(
+            ProfileAmendment.status.desc(),
+            ProfileAmendment.date_submitted.desc()
+        ).all()
+    )
 
 @app.route('/resolve-ticket/<string:type>/<int:id>')
 @login_required
 def resolve_ticket(type, id):
-    if current_user.department != 'IT' and current_user.role != 'Super Admin': return redirect(url_for('dashboard'))
-    if type == 'incident': IncidentReport.query.get_or_404(id).status = 'Resolved'
-    elif type == 'amendment': ProfileAmendment.query.get_or_404(id).status = 'Resolved'
+    if current_user.department != 'IT' and current_user.role != 'Super Admin':
+        return redirect(url_for('dashboard'))
+    if type == 'incident':
+        IncidentReport.query.get_or_404(id).status = 'Resolved'
+    elif type == 'amendment':
+        ProfileAmendment.query.get_or_404(id).status = 'Resolved'
     db.session.commit()
     return redirect(url_for('it_notifications'))
 
 @app.route('/export-data/<string:type>')
 @login_required
 def export_data(type):
-    if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin': return redirect(url_for('dashboard'))
+    if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin':
+        return redirect(url_for('dashboard'))
     si = io.StringIO(); cw = csv.writer(si)
     if type == 'incidents':
         records = IncidentReport.query.all()
         cw.writerow(['ID', 'Date', 'Agency', 'Reporter', 'Contact', 'Issue', 'Description', 'Status'])
-        for r in records: cw.writerow([r.id, r.date_submitted.strftime('%Y-%m-%d'), r.agency, r.reporter_name, r.contact, r.issue_category, r.description, r.status])
+        for r in records:
+            cw.writerow([
+                r.id,
+                r.date_submitted.strftime('%Y-%m-%d'),
+                r.agency,
+                r.reporter_name,
+                r.contact,
+                r.issue_category,
+                r.description,
+                r.status
+            ])
         filename = "IT_Incident_Reports.csv"
     elif type == 'amendments':
         records = ProfileAmendment.query.all()
         cw.writerow(['ID', 'Date', 'Agency', 'Name', 'Phone', 'Username', 'Request Type', 'Details', 'Status'])
         for r in records:
             details = f"{r.new_role or ''} {r.dept_change or ''} {r.transfer_location or ''}".strip()
-            cw.writerow([r.id, r.date_submitted.strftime('%Y-%m-%d'), r.agency, r.fullname, r.phone, r.t24_username, r.request_type, details, r.status])
+            cw.writerow([
+                r.id,
+                r.date_submitted.strftime('%Y-%m-%d'),
+                r.agency,
+                r.fullname,
+                r.phone,
+                r.t24_username,
+                r.request_type,
+                details,
+                r.status
+            ])
         filename = "T24_Amendment_Requests.csv"
     output = make_response(si.getvalue())
-    output.headers["Content-Disposition"] = f"attachment; filename={filename}"; output.headers["Content-type"] = "text/csv"
+    output.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    output.headers["Content-type"] = "text/csv"
     return output
 
 @app.route('/logout')
@@ -584,5 +662,6 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    with app.app_context(): db.create_all()
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
