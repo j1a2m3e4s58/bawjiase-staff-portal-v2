@@ -28,30 +28,13 @@
 
     /* 3. Animation Styles */
     @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
-    @keyframes pop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); } }
+    @keyframes pop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); }
+    }
     .animate-pop { animation: pop 0.5s ease-out forwards; }
-    
-    /* 4. Mobile Responsiveness */
-    .register-card {
-        width: 450px; 
-        min-height: 550px; 
-        position: relative; 
-        overflow: visible;
-    }
-    @media (max-width: 576px) {
-        .register-card {
-            width: 95% !important; /* Take mostly full width on phone */
-            margin-top: 20px;
-        }
-        .container {
-            padding-left: 10px;
-            padding-right: 10px;
-        }
-    }
 </style>
 
-<div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
-    <div class="card glass-card p-3 shadow-lg register-card">
+<div class="auth-wrapper">
+    <div class="card glass-card auth-card p-3 shadow-lg" style="width: 450px; min-height: 550px; position: relative; overflow: visible;">
          
         <div id="topLogo" class="logo-badge">
             <img src="{{ url_for('static', filename='img/barb_logo.png') }}" alt="BARB Logo" width="60" height="60" class="rounded-circle">
@@ -167,7 +150,7 @@
                     <i class="fas fa-exclamation-triangle"></i> Please correct the highlighted errors.
                 </div>
 
-                <button type="button" onclick="validateAndSubmit()" id="submitBtn" class="btn btn-success w-100 fw-bold btn-sm py-2" disabled>CREATE ACCOUNT</button>
+                <button type="button" onclick="validateRegistration()" id="submitBtn" class="btn btn-success w-100 fw-bold btn-sm py-2" disabled>CREATE ACCOUNT</button>
             </form>
 
             <div class="mt-2 text-center">
@@ -175,18 +158,33 @@
             </div>
         </div>
 
-        <div id="emailSentOverlay" class="d-flex flex-column justify-content-center align-items-center w-100" 
+        <div id="verificationMessage" class="d-flex flex-column justify-content-center align-items-center w-100" 
+             style="display: none !important; position: absolute; top: 0; left: 0; height: 100%; background: rgba(255,255,255,0.98); z-index: 20; border-radius: 15px;">
+            
+            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center animate-bounce mb-3" style="width: 70px; height: 70px;">
+                <i class="fas fa-envelope-open-text fa-2x"></i>
+            </div>
+            <h5 class="text-success fw-bold">Check Email</h5>
+            <p class="text-dark small mt-1 px-3 mb-3 text-center" style="font-size: 0.8rem;">
+                Code sent to your inbox.<br>Enter it below.
+            </p>
+            <div class="w-75">
+                <input type="text" class="form-control text-center fw-bold letter-spacing-2 mb-2" id="vCode" placeholder="X X X X">
+                <div id="errorCode" class="alert alert-danger p-1 small mb-2 text-center" style="display: none; font-size: 0.7rem;">
+                    Invalid Code.
+                </div>
+                <button type="button" onclick="verifyCode()" class="btn btn-success w-100 fw-bold btn-sm">VERIFY</button>
+            </div>
+        </div>
+
+        <div id="finalSuccess" class="d-flex flex-column justify-content-center align-items-center w-100" 
              style="display: none !important; position: absolute; top: 0; left: 0; height: 100%; background: white; z-index: 30; border-radius: 15px;">
             
             <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center animate-pop mb-3" style="width: 100px; height: 100px;">
-                <i class="fas fa-paper-plane fa-4x"></i>
+                <i class="fas fa-check fa-4x"></i>
             </div>
-            <h4 class="text-success fw-bold mt-3">Email Sent!</h4>
-            <p class="text-muted small text-center px-4">
-                We've sent a verification link to your email.<br>
-                Please check your inbox to activate your account.
-            </p>
-            <a href="{{ url_for('login') }}" class="btn btn-outline-success btn-sm rounded-pill px-4 mt-3">Go to Login</a>
+            <h4 class="text-success fw-bold mt-3">Verified!</h4>
+            <p class="text-muted small">Redirecting to login...</p>
         </div>
 
     </div>
@@ -197,7 +195,7 @@
     let isPasswordStrong = false;
     let isPasswordMatch = false;
 
-    function validateAndSubmit() {
+    function validateRegistration() {
         let isValid = true;
         let inputs = document.querySelectorAll('.required-field');
         let errorBox = document.getElementById('generalError');
@@ -228,14 +226,36 @@
             setTimeout(() => errorBox.style.animation = "none", 500);
         } else {
             errorBox.style.display = 'none';
-            // Show "Sending..." UI then submit
-            document.getElementById('topLogo').style.display = 'none';
-            document.getElementById('emailSentOverlay').style.setProperty('display', 'flex', 'important');
+            showVerification(); 
+        }
+    }
+
+    // --- TRANSITIONS ---
+    function showVerification() {
+        // Hide Logo Badge
+        document.getElementById('topLogo').style.display = 'none';
+        // Show Verification Overlay
+        document.getElementById('verificationMessage').style.setProperty('display', 'flex', 'important');
+    }
+
+    function verifyCode() {
+        var code = document.getElementById('vCode').value;
+        var errorBox = document.getElementById('errorCode');
+        
+        if (code === '1234') {
+            // Hide Verification
+            document.getElementById('verificationMessage').style.setProperty('display', 'none', 'important');
             
-            // Actually submit the form to the backend to send the email
-            setTimeout(() => {
-                document.getElementById('regForm').submit();
-            }, 1500); 
+            // Show Success Overlay
+            document.getElementById('finalSuccess').style.setProperty('display', 'flex', 'important');
+            
+            // Submit form (which redirects to Login page from backend)
+            setTimeout(function() { 
+                document.getElementById('regForm').submit(); 
+            }, 2000);
+        } else {
+            errorBox.style.display = 'block';
+            setTimeout(function() { errorBox.style.display = 'none'; }, 3000);
         }
     }
 
