@@ -160,6 +160,30 @@ BARB ICT Unit
 """
     mail.send(msg)
 
+def send_password_reset_email(user):
+    """Send a password reset link to the user's email."""
+    token = serializer.dumps(user.email, salt='password-reset')
+    reset_url = url_for('reset_password', token=token, _external=True)
+
+    msg = Message(
+        subject='BARB Staff Portal – Reset Your Password',
+        recipients=[user.email]
+    )
+    msg.body = f"""Hello {user.fullname},
+
+You (or someone using your email) requested to reset your BARB Staff Portal password.
+
+To reset your password, click the secure link below:
+
+{reset_url}
+
+If you did NOT request this, please ignore this email. Your password will remain unchanged.
+
+Best regards,
+Bawjiase Area Rural Bank – IT Team
+"""
+    mail.send(msg)
+
 def save_uploaded_file(form_file, folder):
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_file.filename)
@@ -257,8 +281,58 @@ def verify_email(token):
 
     return redirect(url_for('login'))
 
-@app.route('/forgot-password')
-def forgot_password(): return render_template('forgot_password.html')
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    reset_sent = False
+
+    if request.method == 'POST':
+        email = (request.form.get('email') or "").strip().lower()
+        if email:
+            user = User.query.filter_by(email=email).first()
+            if user:
+                # Send real reset email (but don't reveal existence)
+                try:
+                    send_password_reset_email(user)
+                except Exception:
+                    # Fail silently for the user; you can log errors internally
+                    pass
+        # Always show success state to avoid email enumeration
+        reset_sent = True
+
+    return render_template('forgot_password.html', reset_sent=reset_sent)
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = serializer.loads(token, salt='password-reset', max_age=3600)
+    except Exception:
+        flash('The reset link is invalid or has expired. Please request a new one.', 'danger')
+        return redirect(url_for('forgot_password'))
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('Account not found for this reset link.', 'danger')
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form.get('password') or ''
+        confirm = request.form.get('confirm_password') or ''
+
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+            return redirect(url_for('reset_password', token=token))
+
+        if password != confirm:
+            flash('Passwords do not match.', 'danger')
+            return redirect(url_for('reset_password', token=token))
+
+        user.password = bcrypt.generate_password_hash(password).decode('utf-8')
+        db.session.commit()
+
+        flash('Password updated successfully. You can now log in.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html', token=token)
 
 @app.route('/dashboard')
 @login_required
