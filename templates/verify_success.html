@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .verify-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 4px solid rgba(0, 150, 0, 0.2);
+        border-top-color: #198754;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px auto;
+        animation: spin 1s ease-out forwards;
+        position: relative;
+    }
+    .verify-circle i {
+        font-size: 42px;
+        color: #198754;
+        opacity: 0;
+        transform: scale(0.4);
+        animation: pop-in 0.6s ease-out forwards;
+        animation-delay: 0.9s;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        90% { transform: rotate(360deg); }
+        100% { transform: rotate(360deg); border-color: #198754; }
+    }
+    @keyframes pop-in {
+        0% { opacity: 0; transform: scale(0.4); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100 py-4 px-2">
+    <div class="card glass-card p-4 text-center"
+         style="width: 100%; max-width: 380px; min-height: 320px;">
+
+        <div class="verify-circle">
+            <i class="fas fa-check"></i>
+        </div>
+
+        <h5 class="fw-bold mb-2">Email Verified!</h5>
+        <p class="text-secondary small mb-3">
+            Your BARB Staff Portal account has been activated successfully.
+        </p>
+        <p class="text-muted small mb-4">
+            Redirecting you to the login page...
+        </p>
+
+        <a href="{{ url_for('login') }}"
+           class="btn btn-success w-100 fw-bold">
+            Go to Login Now
+        </a>
+    </div>
+</div>
+
+<script>
+    // Auto redirect after a short delay
+    setTimeout(function () {
+        window.location.href = "{{ url_for('login') }}";
+    }, 2500);
+</script>
+{% endblock %}
