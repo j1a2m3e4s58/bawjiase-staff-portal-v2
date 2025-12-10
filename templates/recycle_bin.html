@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg glass-card mx-3 mt-3 px-3 py-2 sticky-top">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold text-danger" href="#">
+            <i class="fas fa-trash-alt me-2"></i> RECYCLE BIN
+        </a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Back to Dashboard</a>
+    </div>
+</nav>
+
+<div class="container mt-4 pb-5" style="max-width: 900px;">
+    
+    <div class="glass-card p-4 mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold mb-0">Deleted Announcements</h5>
+            <p class="text-muted small mb-0">Restore posts or delete them permanently.</p>
+        </div>
+        <a href="{{ url_for('empty_trash') }}" class="btn btn-danger btn-sm rounded-pill shadow-sm" onclick="return confirm('Are you sure you want to PERMANENTLY delete ALL items?');">
+            <i class="fas fa-fire-alt me-1"></i> Empty Bin
+        </a>
+    </div>
+
+    <div class="row g-3">
+        {% for post in trash_items %}
+        <div class="col-12">
+            <div class="glass-card p-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="bg-light text-secondary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                        <i class="fas fa-newspaper"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark">{{ post.title }}</h6>
+                        <small class="text-muted">Posted by {{ post.author }} on {{ post.date_posted.strftime('%d %b %Y') }}</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('restore_post', post_id=post.id) }}" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
+                        <i class="fas fa-undo me-1"></i> Restore
+                    </a>
+                    <a href="{{ url_for('permanent_delete', post_id=post.id) }}" class="btn btn-sm btn-outline-danger rounded-circle shadow-sm" title="Delete Forever" onclick="return confirm('Delete permanently?');">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-trash-restore fa-3x text-muted opacity-25 mb-3"></i>
+            <p class="text-muted">Recycle Bin is empty.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

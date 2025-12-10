@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg glass-card mx-3 mt-3 px-3 py-2 sticky-top" style="border-radius: 12px; z-index: 1000;">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <img src="{{ url_for('static', filename='img/barb_logo.png') }}" alt="Logo" width="40" height="40" class="me-2 rounded-circle">
+            <div class="d-flex flex-column ms-2">
+                <span class="fw-bold text-success small" style="line-height: 1;">BAWJIASE AREA</span>
+                <span class="small text-muted" style="font-size: 0.65rem;">RURAL BANK PLC</span>
+            </div>
+        </a>
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+            <ul class="navbar-nav gap-3 mt-3 mt-lg-0 text-center">
+                <li class="nav-item"><a class="nav-link active fw-bold text-success" href="#"><i class="fas fa-home me-1"></i> Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link fw-bold text-primary" href="{{ url_for('directory') }}"><i class="fas fa-address-book me-1"></i> Directory</a></li>
+                <li class="nav-item"><a class="nav-link fw-bold text-secondary" href="{{ url_for('forms') }}"><i class="fas fa-file-alt me-1"></i> Forms</a></li>
+                <li class="nav-item"><a class="nav-link fw-bold text-secondary" href="#"><i class="fas fa-book me-1"></i> Handbook</a></li>
+                {% if user.department == 'IT' or user.role == 'Super Admin' %}
+                <li class="nav-item"><a class="nav-link fw-bold text-danger" href="{{ url_for('it_notifications') }}"><i class="fas fa-bell me-1"></i> Alerts {% if unread_count > 0 %}<span class="badge bg-danger rounded-pill">{{ unread_count }}</span>{% endif %}</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="dropdown d-none d-lg-block">
+            <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" id="userDropdown" data-bs-toggle="dropdown">
+                <div class="rounded-circle me-2 overflow-hidden shadow-sm" style="width: 35px; height: 35px;">
+                    {% if user.image_file == 'default.jpg' %}<div class="bg-success text-white w-100 h-100 d-flex align-items-center justify-content-center fw-bold">{{ user.email[0].upper() }}</div>
+                    {% else %}<img src="{{ url_for('static', filename='profile_pics/' + user.image_file) }}" alt="Profile" class="w-100 h-100" style="object-fit: cover;">{% endif %}
+                </div>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                <li><a class="dropdown-item small" href="{{ url_for('profile') }}"><i class="fas fa-user-circle me-2"></i> Profile</a></li>
+                <li><a class="dropdown-item small text-danger fw-bold" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-3 px-md-4 mt-4 pb-5">
+    <div class="row g-4">
+        
+        <div class="col-12 col-lg-8">
+            <div class="glass-card p-4 mb-4 d-flex justify-content-between align-items-center bg-success text-white" style="background: linear-gradient(135deg, #004d40 0%, #00695c 100%);">
+                <div><h4 class="fw-bold mb-1 fs-5">Welcome, {{ user.fullname }}!</h4><p class="mb-0 small opacity-75">Staff Portal</p></div>
+                {% if user.department in ['IT', 'HR'] or user.role == 'Super Admin' %}
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('news_portal') }}" class="btn btn-light btn-sm text-success fw-bold rounded-pill shadow-sm"><i class="fas fa-plus"></i></a>
+                    <a href="{{ url_for('recycle_bin') }}" class="btn btn-outline-light btn-sm rounded-circle shadow-sm"><i class="fas fa-trash-restore"></i></a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-newspaper me-2"></i> News Feed</h6>
+            
+            <div class="d-flex flex-column gap-3 mb-5">
+                {% for post in announcements %}
+                <div class="glass-card p-0 border-0 shadow-sm overflow-hidden">
+                    <div class="p-3 border-bottom d-flex align-items-center bg-light justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px; font-size: 0.8rem;"><i class="fas fa-user"></i></div>
+                            <div><h6 class="fw-bold mb-0 text-dark small">{{ post.author }}</h6><small class="text-muted" style="font-size: 0.65rem;">{{ post.date_posted.strftime('%d %b, %H:%M') }} &bull; {{ post.category }}</small></div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            {% if user.department in ['IT', 'HR'] or user.role == 'Super Admin' %}
+                            <button class="btn btn-sm btn-light border rounded-circle" onclick="openEditModal(this)" data-id="{{ post.id | e }}" data-title="{{ post.title | e }}" data-body="{{ post.body | e }}" data-allow="{{ post.allow_download | e }}"><i class="fas fa-pencil-alt text-secondary"></i></button>
+                            <a href="{{ url_for('move_to_trash', post_id=post.id) }}" class="btn btn-sm btn-outline-danger border rounded-circle" onclick="return confirm('Trash?');"><i class="fas fa-trash-alt"></i></a>
+                            {% endif %}
+                            <a href="{{ url_for('hide_post', post_id=post.id) }}" class="btn btn-sm btn-light border rounded-circle"><i class="fas fa-eye-slash text-muted"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="p-3">
+                        <h5 class="fw-bold text-dark fs-6">{{ post.title }}</h5>
+                        <p class="text-secondary small">{{ post.body }}</p>
+                        
+                        {% if post.image_file %}
+                            {% if post.image_file.endswith(('.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx')) %}
+                                <div class="p-2 border rounded bg-light d-flex align-items-center mb-3">
+                                    <i class="fas fa-file-alt fa-2x text-primary me-3"></i>
+                                    <div class="flex-grow-1"><div class="small fw-bold">Document</div><div class="small text-muted" style="font-size: 0.6rem;">Attachment</div></div>
+                                    {% if post.allow_download or user.role == 'Super Admin' %}
+                                        <a href="{{ url_for('static', filename='news_images/' + post.image_file) }}" class="btn btn-sm btn-primary rounded-pill px-3" download>Download</a>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="openViewModal(this)" data-url="{{ url_for('static', filename='news_images/' + post.image_file) | e }}" data-filename="{{ post.image_file | e }}">View</button>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="mb-3 position-relative">
+                                    <img src="{{ url_for('static', filename='news_images/' + post.image_file) }}" class="img-fluid rounded w-100 border" style="max-height: 400px; object-fit: contain;" {% if not post.allow_download %} oncontextmenu="return false;" {% endif %}>
+                                    {% if post.allow_download or user.role == 'Super Admin' %}
+                                    <div class="mt-2 text-end"><a href="{{ url_for('static', filename='news_images/' + post.image_file) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3" download><i class="fas fa-download me-1"></i> Save</a></div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if post.poll %}
+                        <div class="border rounded p-3 bg-light">
+                            <h6 class="fw-bold mb-3 small"><i class="fas fa-poll text-primary me-2"></i>{{ post.poll.question }}</h6>
+                            {% for option in post.poll.options %}
+                                <div class="mb-2">
+                                    {% if post.poll.id in user_votes %}
+                                        <div class="d-flex justify-content-between small mb-1"><span>{{ option.text }}</span><span class="fw-bold">{{ option.count }}</span></div>
+                                        <div class="progress" style="height: 6px;"><div class="progress-bar bg-success" role="progressbar" style="width: 100%;"></div></div>
+                                    {% else %}
+                                        <a href="{{ url_for('vote', poll_id=post.poll.id, option_id=option.id) }}" class="btn btn-outline-primary btn-sm w-100 text-start small">{{ option.text }}</a>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}<div class="text-center py-5 text-muted small"><p>No announcements yet.</p></div>{% endfor %}
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="glass-card p-3 mb-4 text-center">
+                <div class="mx-auto mb-2 rounded-circle overflow-hidden shadow-sm" style="width: 70px; height: 70px; border: 3px solid #004d40;">
+                    {% if user.image_file == 'default.jpg' %}<div class="bg-light text-success w-100 h-100 d-flex align-items-center justify-content-center fw-bold fs-4">{{ user.email[0].upper() }}</div>
+                    {% else %}<img src="{{ url_for('static', filename='profile_pics/' + user.image_file) }}" alt="Profile" class="w-100 h-100" style="object-fit: cover;">{% endif %}
+                </div>
+                <h5 class="fw-bold mb-0 text-dark fs-6">{{ user.fullname }}</h5>
+                <p class="small text-muted mb-2">{{ user.position }} | {{ user.branch }}</p>
+                <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-success w-100 rounded-pill">Edit Profile</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger w-100 rounded-pill mt-2 d-lg-none">Logout</a>
+            </div>
+            
+            <h6 class="fw-bold text-secondary mb-2">Quick Actions</h6>
+            <div class="row g-2">
+                <div class="col-6"><a href="{{ url_for('profile') }}" class="btn btn-light w-100 p-3 shadow-sm border h-100 d-flex flex-column align-items-center justify-content-center text-decoration-none"><i class="fas fa-desktop fa-2x text-primary mb-2"></i><span class="small fw-bold text-dark" style="font-size: 0.65rem;">Amendment</span></a></div>
+                <div class="col-6"><a href="{{ url_for('forms') }}" class="btn btn-light w-100 p-3 shadow-sm border h-100 d-flex flex-column align-items-center justify-content-center text-decoration-none"><i class="fas fa-file-invoice fa-2x text-warning mb-2"></i><span class="small fw-bold text-dark" style="font-size: 0.65rem;">Forms</span></a></div>
+                <div class="col-6"><a href="#" class="btn btn-light w-100 p-3 shadow-sm border h-100 d-flex flex-column align-items-center justify-content-center text-decoration-none"><i class="fas fa-book-reader fa-2x text-info mb-2"></i><span class="small fw-bold text-dark" style="font-size: 0.65rem;">Handbook</span></a></div>
+                <div class="col-6"><a href="{{ url_for('it_support') }}" class="btn btn-light w-100 p-3 shadow-sm border h-100 d-flex flex-column align-items-center justify-content-center text-decoration-none"><i class="fas fa-headset fa-2x text-success mb-2"></i><span class="small fw-bold text-dark" style="font-size: 0.65rem;">Support</span></a></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="editPostModal" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0"><h5 class="modal-title fw-bold">Edit</h5><button type="button" class="btn-close" onclick="closeEditModal()"></button></div>
+            <div class="modal-body">
+                <form id="editPostForm" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3"><label class="small fw-bold">Subject</label><input type="text" name="title" id="editTitle" class="form-control" required></div>
+                    <div class="mb-3"><label class="small fw-bold">Body</label><textarea name="body" id="editBody" class="form-control" rows="4" required></textarea></div>
+                    <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="allow_download" id="editAllow"><label class="form-check-label small">Allow Download</label></div>
+                    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="remove_file" id="removeFile"><label class="form-check-label small text-danger">Remove File</label></div>
+                    <div class="mb-3"><input type="file" name="news_image" class="form-control form-control-sm"></div>
+                    <div class="d-grid"><button type="submit" class="btn btn-primary fw-bold">Update</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="viewFileModal" tabindex="-1" style="background: rgba(0,0,0,0.9);">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-header border-0 p-3"><h5 class="modal-title text-white">Viewer</h5><button type="button" class="btn-close btn-close-white" onclick="closeViewModal()"></button></div>
+            <div class="modal-body p-0 d-flex justify-content-center align-items-center"><div id="viewContent" class="bg-white rounded shadow-lg overflow-hidden" style="width: 95%; height: 90%;"></div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openEditModal(btn) {
+        document.getElementById('editPostForm').action = "/edit-post/" + btn.getAttribute('data-id');
+        document.getElementById('editTitle').value = btn.getAttribute('data-title');
+        document.getElementById('editBody').value = btn.getAttribute('data-body');
+        document.getElementById('editAllow').checked = (btn.getAttribute('data-allow') === 'True');
+        document.getElementById('removeFile').checked = false;
+        document.getElementById('editPostModal').style.display = 'block';
+        document.getElementById('editPostModal').classList.add('show');
+    }
+    function closeEditModal() { document.getElementById('editPostModal').style.display = 'none'; document.getElementById('editPostModal').classList.remove('show'); }
+
+    function openViewModal(btn) {
+        let url = btn.getAttribute('data-url');
+        let filename = btn.getAttribute('data-filename');
+        let ext = filename.split('.').pop().toLowerCase();
+        let content = '';
+        if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) { content = `<img src="${url}" style="width: 100%; height: 100%; object-fit: contain;">`; }
+        else if (ext === 'pdf') { content = `<iframe src="${url}" style="width: 100%; height: 100%; border: none;"></iframe>`; }
+        else {
+            let encodedUrl = encodeURIComponent(window.location.origin + url);
+            if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') { content = `<div class="text-center p-5 mt-5"><h4>Localhost</h4><p>Cannot view Office docs locally.</p></div>`; }
+            else { content = `<iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}" style="width: 100%; height: 100%; border: none;"></iframe>`; }
+        }
+        document.getElementById('viewContent').innerHTML = content;
+        document.getElementById('viewFileModal').style.display = 'block';
+        document.getElementById('viewFileModal').classList.add('show');
+    }
+    function closeViewModal() { document.getElementById('viewFileModal').style.display = 'none'; document.getElementById('viewFileModal').classList.remove('show'); document.getElementById('viewContent').innerHTML = ''; }
+</script>
+{% endblock %}

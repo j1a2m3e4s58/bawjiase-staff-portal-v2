@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg glass-card mx-3 mt-3 px-3 py-2 sticky-top" style="border-radius: 12px; z-index: 1000;">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('static', filename='img/barb_logo.png') }}" alt="Logo" width="40" height="40" class="me-2 rounded-circle">
+            <div class="d-flex flex-column">
+                <span class="fw-bold text-success small" style="line-height: 1;">BAWJIASE AREA</span>
+                <span class="small text-muted" style="font-size: 0.65rem;">RURAL BANK PLC</span>
+            </div>
+        </a>
+        <div class="collapse navbar-collapse justify-content-center">
+            <ul class="navbar-nav gap-3">
+                <li class="nav-item"><a class="nav-link fw-bold text-secondary" href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link active fw-bold text-primary border-bottom border-primary border-3" href="#">IT Support</a></li>
+                {% if user.department == 'IT' or user.role == 'Super Admin' %}
+                <li class="nav-item position-relative">
+                    <a class="nav-link fw-bold text-danger" href="{{ url_for('it_notifications') }}">
+                        <i class="fas fa-bell fa-lg"></i>
+                        {% if unread_count > 0 %}
+                        <span class="position-absolute top-10 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.6rem; margin-top: 5px;">{{ unread_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4 pb-5" style="max-width: 900px;">
+
+    <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="border-radius: 20px;">
+                <div class="modal-body">
+                    <div class="mb-4"><i class="fas fa-check-circle text-success" style="font-size: 5rem; animation: popIn 0.5s;"></i></div>
+                    <h3 class="fw-bold text-dark">Request Submitted!</h3>
+                    <p class="text-muted">The IT Department has received your request.</p>
+                    <button type="button" class="btn btn-success rounded-pill px-5 fw-bold mt-3" data-bs-dismiss="modal">Okay, Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="errorModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="border-radius: 20px;">
+                <div class="modal-body">
+                    <div class="mb-4"><i class="fas fa-exclamation-circle text-warning" style="font-size: 5rem; animation: shake 0.5s;"></i></div>
+                    <h3 class="fw-bold text-dark">Details Missing</h3>
+                    <p class="text-muted">Kindly complete all required fields before submitting so we can assist you properly.</p>
+                    <button type="button" class="btn btn-warning rounded-pill px-5 fw-bold mt-3 text-dark" data-bs-dismiss="modal">Review Form</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                {% if category == 'success_modal' %}
+                <script>document.addEventListener("DOMContentLoaded", function(){ var myModal = new bootstrap.Modal(document.getElementById('successModal')); myModal.show(); });</script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="glass-card p-4">
+        <h3 class="fw-bold text-primary mb-3"><i class="fas fa-headset me-2"></i>IT Support Portal</h3>
+        <p class="text-muted small mb-4">Please select the appropriate form below to submit your request.</p>
+
+        <ul class="nav nav-pills mb-4 nav-justified" id="itTabs" role="tablist">
+            <li class="nav-item" role="presentation"><button class="nav-link active fw-bold" id="incident-tab" data-bs-toggle="pill" data-bs-target="#incident" type="button" role="tab"><i class="fas fa-exclamation-triangle me-2"></i>Incident Report</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link fw-bold" id="amendment-tab" data-bs-toggle="pill" data-bs-target="#amendment" type="button" role="tab"><i class="fas fa-user-cog me-2"></i>T24 Amendment</button></li>
+        </ul>
+
+        <div class="tab-content" id="itTabsContent">
+            
+            <div class="tab-pane fade show active" id="incident" role="tabpanel">
+                <form method="POST" action="{{ url_for('it_support') }}" id="incidentForm" novalidate>
+                    <input type="hidden" name="form_type" value="incident">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Agency</label>
+                            <select class="form-select required-field" name="agency">
+                                <option value="" selected disabled>Select Agency...</option>
+                                <option>HEAD OFFICE</option><option>BAWJIASE</option><option>ADEISO</option><option>OFAAKOR</option><option>KASOA NEW MARKET</option><option>KASOA MAIN</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Issue Category</label>
+                            <select class="form-select required-field" name="issue">
+                                <option value="" selected disabled>Select Issue...</option>
+                                <option>Temenos 24</option><option>NETWORK</option><option>NCOMPUTING</option><option>REMITTANCE</option><option>E-ZWICH</option><option>NIA</option><option>PRINTER</option><option>UPS</option><option>CCTV</option><option>SYSTEM ADMINISTRATION</option><option>COMPUTERS AND PERIPHERALS</option><option>EMAIL/WEBSITE</option>
+                            </select>
+                        </div>
+                        <div class="col-12"><label class="form-label small fw-bold text-muted">Description of Issue</label><textarea class="form-control required-field" name="description" rows="4" placeholder="Describe the problem in detail..."></textarea></div>
+                        <div class="col-md-6"><label class="form-label small fw-bold text-muted">Reporting Officer</label><input type="text" class="form-control required-field" name="reporter_name" value="{{ user.fullname }}"></div>
+                        <div class="col-md-6"><label class="form-label small fw-bold text-muted">Contact / Ext</label><input type="text" class="form-control required-field" name="contact" placeholder="Phone or Extension"></div>
+                        
+                        <div class="col-12 mt-4"><button type="button" onclick="validateAndSubmit('incidentForm')" class="btn btn-primary w-100 py-2 fw-bold shadow-sm"><i class="fas fa-paper-plane me-2"></i>Submit Incident Report</button></div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="tab-pane fade" id="amendment" role="tabpanel">
+                <form method="POST" action="{{ url_for('it_support') }}" id="amendmentForm" novalidate>
+                    <input type="hidden" name="form_type" value="amendment">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label small fw-bold text-muted">Name</label><input type="text" class="form-control required-field" name="fullname" value="{{ user.fullname }}"></div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Phone Number</label>
+                            <input type="text" class="form-control required-field" name="phone" placeholder="Enter your mobile number">
+                        </div>
+
+                        <div class="col-md-6"><label class="form-label small fw-bold text-muted">T24 Username</label><input type="text" class="form-control required-field" name="t24_username" placeholder="e.g. B01.JOHN"></div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Agency</label>
+                            <select class="form-select required-field" name="agency">
+                                <option value="" selected disabled>Select Agency...</option>
+                                <option>HEAD OFFICE</option><option>BAWJIASE</option><option>ADEISO</option><option>OFAAKOR</option><option>KASOA NEW MARKET</option><option>KASOA MAIN</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-muted">Type of Request</label>
+                            <select class="form-select required-field" name="request_type" id="requestTypeSelect" onchange="toggleFields()">
+                                <option value="" selected disabled>Select Request...</option>
+                                <option value="T24 PASSWORD RESET">T24 PASSWORD RESET</option><option value="T24 TOO MANY ATTEMPTS RESET">T24 TOO MANY ATTEMPTS RESET</option><option value="ROLE CHANGE">ROLE CHANGE (DASHBOARD MENU)</option><option value="DEPARTMENTAL CHANGE">DEPARTMENTAL CHANGE (INPUTTER / AUTHORIZER)</option><option value="TRANSFER OF PROFILE">TRANSFER OF PROFILE</option><option value="STAFF REDESIGNATION">STAFF REDESIGNATION</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-12 d-none p-3 border rounded bg-light bg-opacity-10 mt-3" id="roleChangeField">
+                            <label class="form-label fw-bold text-primary">If Role Change, what is the new role?</label>
+                            <input type="text" class="form-control dynamic-field" name="new_role" placeholder="Enter new role here...">
+                        </div>
+                        <div class="col-12 d-none p-3 border rounded bg-light bg-opacity-10 mt-3" id="deptChangeField">
+                            <label class="form-label fw-bold text-primary">If Departmental Change, Indicate:</label>
+                            <select class="form-select dynamic-field" name="dept_change">
+                                <option value="" selected disabled>Select Change...</option>
+                                <option>LOAN INPUTTER TO AUTHORIZER</option><option>LOAN AUTHORIZER TO INPUTTER</option><option>FD INPUTTER TO AUTHORIZER</option><option>FD AUTHORIZER TO INPUTTER</option>
+                            </select>
+                        </div>
+                        <div class="col-12 d-none p-3 border rounded bg-light bg-opacity-10 mt-3" id="transferField">
+                            <label class="form-label fw-bold text-primary">If Transfer of Profile, where are you transferring to?</label>
+                            <select class="form-select dynamic-field" name="transfer_location">
+                                <option value="" selected disabled>Select Destination...</option>
+                                <option>ADEISO AGENCY</option><option>BAWJIASE AGENCY</option><option>HEAD OFFICE</option><option>OFAAKOR</option><option>KASOA MARKET</option><option>KASOA NEW MARKET</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-12 mt-4"><button type="button" onclick="validateAndSubmit('amendmentForm')" class="btn btn-success w-100 py-2 fw-bold shadow-sm"><i class="fas fa-check-circle me-2"></i>Submit Amendment Request</button></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 80% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); } }
+    @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-10px); } 50% { transform: translateX(10px); } 75% { transform: translateX(-10px); } 100% { transform: translateX(0); } }
+</style>
+
+<script>
+    // 1. Dynamic Field Logic
+    function toggleFields() {
+        var type = document.getElementById("requestTypeSelect").value;
+        document.getElementById("roleChangeField").classList.add("d-none");
+        document.getElementById("deptChangeField").classList.add("d-none");
+        document.getElementById("transferField").classList.add("d-none");
+        
+        if (type === "ROLE CHANGE") document.getElementById("roleChangeField").classList.remove("d-none");
+        else if (type === "DEPARTMENTAL CHANGE") document.getElementById("deptChangeField").classList.remove("d-none");
+        else if (type === "TRANSFER OF PROFILE") document.getElementById("transferField").classList.remove("d-none");
+    }
+
+    // 2. Form Validation Logic
+    function validateAndSubmit(formId) {
+        let form = document.getElementById(formId);
+        let isValid = true;
+        
+        // Check standard required fields
+        let standardInputs = form.querySelectorAll('.required-field');
+        standardInputs.forEach(function(input) {
+            if (!input.value.trim()) {
+                isValid = false;
+                input.classList.add('is-invalid'); // Highlight red
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+
+        // Check Dynamic fields (only if visible)
+        let dynamicContainers = form.querySelectorAll('.d-none'); // Find hidden containers
+        let allDynamicInputs = form.querySelectorAll('.dynamic-field');
+        
+        // Loop through dynamic inputs, if their parent is NOT hidden, they must be filled
+        allDynamicInputs.forEach(function(input) {
+            let parentDiv = input.closest('.col-12'); // The parent container
+            if (!parentDiv.classList.contains('d-none')) {
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            }
+        });
+
+        if (isValid) {
+            form.submit(); // If everything is good, send to server
+        } else {
+            // Show the "Warning" Modal
+            var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+            errorModal.show();
+        }
+    }
+</script>
+{% endblock %}

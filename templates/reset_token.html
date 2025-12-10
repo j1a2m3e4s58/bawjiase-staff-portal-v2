@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Logo Badge Style */
+    .logo-badge {
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        z-index: 10;
+    }
+    .reset-card { width: 400px; position: relative; overflow: visible; }
+    @media (max-width: 576px) { .reset-card { width: 95% !important; margin-top: 30px !important; } }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="card glass-card p-4 text-center reset-card mt-3">
+        
+        <div class="logo-badge">
+            <img src="{{ url_for('static', filename='img/barb_logo.png') }}" alt="BARB Logo" width="60" height="60" class="rounded-circle">
+        </div>
+
+        <div class="mt-5 pt-2">
+            <h5 class="mb-2 fw-bold text-dark">Set New Password</h5>
+            <p class="text-secondary small mb-4">Create a strong password.</p>
+            
+            <form method="POST">
+                <div class="mb-3 text-start">
+                    <label class="form-label small fw-bold text-secondary">NEW PASSWORD</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <div class="mb-3 text-start">
+                    <label class="form-label small fw-bold text-secondary">CONFIRM PASSWORD</label>
+                    <input type="password" name="confirm_password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                    CHANGE PASSWORD
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

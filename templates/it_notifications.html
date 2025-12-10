@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg glass-card mx-3 mt-3 px-3 py-2 sticky-top">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold text-danger" href="#">IT ADMIN PANEL</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</nav>
+
+<div class="container mt-4 pb-5">
+    
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-primary mb-0">🚨 Incident Reports</h5>
+                    <a href="{{ url_for('export_data', type='incidents') }}" class="btn btn-sm btn-outline-primary fw-bold"><i class="fas fa-file-csv me-2"></i>Export CSV</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light"><tr><th>Date</th><th>Agency</th><th>Reporter</th><th>Issue</th><th>Description</th><th>Action</th></tr></thead>
+                        <tbody>
+                            {% for i in incidents %}
+                            <tr class="{% if i.status == 'Resolved' %}table-success opacity-50{% endif %}">
+                                <td class="small">{{ i.date_submitted.strftime('%d-%m-%Y') }}</td>
+                                <td class="small">{{ i.agency }}</td>
+                                <td class="fw-bold small">{{ i.reporter_name }}<br><span class="text-muted">{{ i.contact }}</span></td>
+                                <td><span class="badge bg-warning text-dark">{{ i.issue_category }}</span></td>
+                                <td class="small text-muted">{{ i.description }}</td>
+                                <td>{% if i.status == 'Open' %}<a href="{{ url_for('resolve_ticket', type='incident', id=i.id) }}" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm"><i class="fas fa-check me-1"></i> Resolve</a>{% else %}<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Resolved</span>{% endif %}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center text-muted">No incidents reported.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-success mb-0">👤 T24 Amendment Requests</h5>
+                    <a href="{{ url_for('export_data', type='amendments') }}" class="btn btn-sm btn-outline-success fw-bold"><i class="fas fa-file-csv me-2"></i>Export CSV</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Username</th>
+                                <th>Request Type</th>
+                                <th>Phone</th> <th>Details</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in amendments %}
+                            <tr class="{% if a.status == 'Resolved' %}table-success opacity-50{% endif %}">
+                                <td class="small">{{ a.date_submitted.strftime('%d-%m-%Y') }}</td>
+                                <td class="fw-bold small">{{ a.t24_username }}<br><span class="text-muted">{{ a.agency }}</span></td>
+                                <td><span class="badge bg-info text-dark">{{ a.request_type }}</span></td>
+                                <td class="small text-dark fw-bold">{{ a.phone }}</td> <td class="small text-muted">
+                                    {% if a.new_role %} New Role: {{ a.new_role }} {% endif %}
+                                    {% if a.dept_change %} {{ a.dept_change }} {% endif %}
+                                    {% if a.transfer_location %} To: {{ a.transfer_location }} {% endif %}
+                                </td>
+                                <td>{% if a.status == 'Open' %}<a href="{{ url_for('resolve_ticket', type='amendment', id=a.id) }}" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm"><i class="fas fa-check me-1"></i> Resolve</a>{% else %}<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Resolved</span>{% endif %}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center text-muted">No amendment requests.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* 1. Force Dropdown Options to be Bold & Dark */
+    select option {
+        color: #000 !important;
+        font-weight: bold !important;
+        background-color: white !important;
+    }
+
+    /* 2. Logo Badge Style */
+    .logo-badge {
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        z-index: 10;
+    }
+
+    /* 3. Animation Styles */
+    @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
+    @keyframes pop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); } }
+    .animate-pop { animation: pop 0.5s ease-out forwards; }
+    
+    /* 4. Mobile Responsiveness */
+    .register-card {
+        width: 450px; 
+        min-height: 550px; 
+        position: relative; 
+        overflow: visible;
+    }
+    @media (max-width: 576px) {
+        .register-card {
+            width: 95% !important; /* Take mostly full width on phone */
+            margin-top: 20px;
+        }
+        .container {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+    }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
+    <div class="card glass-card p-3 shadow-lg register-card">
+         
+        <div id="topLogo" class="logo-badge">
+            <img src="{{ url_for('static', filename='img/barb_logo.png') }}" alt="BARB Logo" width="60" height="60" class="rounded-circle">
+        </div>
+
+        <div id="registerForm" class="mt-4">
+            <h5 class="text-center text-dark fw-bold mb-1 mt-3">Staff Registration</h5>
+            <p class="text-center small text-muted mb-3">Create your secure account</p>
+            
+            <form id="regForm" method="POST"> 
+                
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary mb-0" style="font-size: 0.6rem;">FULL NAME</label>
+                        <input type="text" name="fullname" class="form-control form-control-sm required-field" placeholder="John Mensah">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary mb-0" style="font-size: 0.6rem;">PHONE</label>
+                        <input type="text" name="phone" id="regPhone" class="form-control form-control-sm required-field" placeholder="024XXXXXXX">
+                        <div id="phoneErrorText" class="text-danger fw-bold mt-0" style="display: none; font-size: 0.6rem; line-height: 1;">
+                            10+ digits required
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-secondary mb-0" style="font-size: 0.6rem;">OFFICIAL EMAIL</label>
+                    <input type="email" name="email" id="regEmail" class="form-control form-control-sm required-field" placeholder="name@bawjiasearearuralbank.com">
+                    <div id="emailErrorText" class="text-danger fw-bold mt-0" style="display: none; font-size: 0.6rem; line-height: 1;">
+                        Must use @bawjiasearearuralbank.com
+                    </div>
+                </div>
+                
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary mb-0" style="font-size: 0.6rem;">BRANCH</label>
+                        <select name="branch" class="form-select form-select-sm required-field text-dark fw-bold" style="font-size: 0.75rem;">
+                            <option value="" selected disabled>Select...</option>
+                            <option value="Head Office">Head Office</option>
+                            <option value="Adeiso">Adeiso</option>
+                            <option value="Offakor">Offakor</option>
+                            <option value="Kasoa New Market">Kasoa New Market</option>
+                            <option value="Kasoa Main">Kasoa Main</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary mb-0" style="font-size: 0.6rem;">DEPARTMENT</label>
+                        <select name="department" class="form-select form-select-sm required-field text-dark fw-bold" style="font-size: 0.75rem;">
+                            <option value="" selected disabled>Select...</option>
+                            <option value="IT">IT</option>
+                            <option value="BANKING OPERATIONS">BANKING OPERATIONS</option>
+                            <option value="E-BANKING">E-BANKING</option>
+                            <option value="MICROFINANCE">MICROFINANCE</option>
+                            <option value="CREDIT">CREDIT</option>
+                            <option value="RECOVERY">RECOVERY</option>
+                            <option value="SUSU">SUSU</option>
+                            <option value="COMPLIANCE">COMPLIANCE</option>
+                            <option value="AUDIT">AUDIT</option>
+                            <option value="HR">HR</option>
+                            <option value="ADMIN">ADMIN</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary mb-0" style="font-size: 0.6rem;">PASSWORD</label>
+                        <div class="input-group input-group-sm">
+                            <input type="password" name="password" class="form-control required-field" id="regPass1" placeholder="Create Pass" style="border-right: 0;" onkeyup="checkStrength()">
+                            <span class="input-group-text bg-white border-start-0 px-2" onclick="toggleRegPassword('regPass1', 'icon1')" style="cursor: pointer;">
+                                <i class="fas fa-eye text-muted" id="icon1"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary mb-0" style="font-size: 0.6rem;">CONFIRM</label>
+                        <div class="input-group input-group-sm">
+                            <input type="password" class="form-control required-field" id="regPass2" placeholder="Repeat Pass" style="border-right: 0;" onkeyup="checkMatch()">
+                            <span class="input-group-text bg-white border-start-0 px-2" onclick="toggleRegPassword('regPass2', 'icon2')" style="cursor: pointer;">
+                                <i class="fas fa-eye text-muted" id="icon2"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-light p-2 rounded mb-2 border">
+                    <div class="row g-0">
+                        <div class="col-6">
+                            <span id="ruleLen" class="text-danger fw-bold d-block" style="font-size: 0.6rem;">
+                                <i class="fas fa-circle" style="font-size: 4px;"></i> 8+ Characters
+                            </span>
+                            <span id="ruleLower" class="text-danger fw-bold d-block" style="font-size: 0.6rem;">
+                                <i class="fas fa-circle" style="font-size: 4px;"></i> Small Letters (a-z)
+                            </span>
+                        </div>
+                        <div class="col-6">
+                            <span id="ruleUpper" class="text-danger fw-bold d-block" style="font-size: 0.6rem;">
+                                <i class="fas fa-circle" style="font-size: 4px;"></i> Uppercase (A-Z)
+                            </span>
+                            <span id="ruleNum" class="text-danger fw-bold d-block" style="font-size: 0.6rem;">
+                                <i class="fas fa-circle" style="font-size: 4px;"></i> Number/Symbol (@1)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mb-2">
+                    <span id="matchText" class="badge bg-danger" style="font-size: 0.6rem; visibility: hidden; width: 100%;">PASSWORDS DO NOT MATCH</span>
+                </div>
+
+                <div id="generalError" class="alert alert-warning p-1 text-center mb-2" style="display: none; font-size: 0.65rem;">
+                    <i class="fas fa-exclamation-triangle"></i> Please correct the highlighted errors.
+                </div>
+
+                <button type="button" onclick="validateAndSubmit()" id="submitBtn" class="btn btn-success w-100 fw-bold btn-sm py-2" disabled>CREATE ACCOUNT</button>
+            </form>
+
+            <div class="mt-2 text-center">
+                <a href="{{ url_for('login') }}" class="small text-secondary" style="font-size: 0.75rem;">Back to Login</a>
+            </div>
+        </div>
+
+        <div id="emailSentOverlay" class="d-flex flex-column justify-content-center align-items-center w-100" 
+             style="display: none !important; position: absolute; top: 0; left: 0; height: 100%; background: white; z-index: 30; border-radius: 15px;">
+            
+            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center animate-pop mb-3" style="width: 100px; height: 100px;">
+                <i class="fas fa-paper-plane fa-4x"></i>
+            </div>
+            <h4 class="text-success fw-bold mt-3">Email Sent!</h4>
+            <p class="text-muted small text-center px-4">
+                We've sent a verification link to your email.<br>
+                Please check your inbox to activate your account.
+            </p>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-success btn-sm rounded-pill px-4 mt-3">Go to Login</a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- VALIDATION LOGIC ---
+    let isPasswordStrong = false;
+    let isPasswordMatch = false;
+
+    function validateAndSubmit() {
+        let isValid = true;
+        let inputs = document.querySelectorAll('.required-field');
+        let errorBox = document.getElementById('generalError');
+        let emailInput = document.getElementById('regEmail');
+        let emailError = document.getElementById('emailErrorText');
+        let phoneInput = document.getElementById('regPhone');
+        let phoneError = document.getElementById('phoneErrorText');
+
+        // Check Empty
+        inputs.forEach(input => {
+            if (!input.value.trim()) { input.classList.add('is-invalid'); isValid = false; } 
+            else { input.classList.remove('is-invalid'); }
+        });
+
+        // Check Phone
+        let phoneVal = phoneInput.value.replace(/[^0-9]/g, '');
+        if (phoneVal.length < 10) { phoneInput.classList.add('is-invalid'); phoneError.style.display = 'block'; isValid = false; } 
+        else { phoneError.style.display = 'none'; }
+
+        // Check Email
+        let email = emailInput.value.trim().toLowerCase();
+        if (!email.endsWith("@bawjiasearearuralbank.com")) { emailInput.classList.add('is-invalid'); emailError.style.display = 'block'; isValid = false; } 
+        else { emailError.style.display = 'none'; }
+
+        if (!isValid || !isPasswordStrong || !isPasswordMatch) {
+            errorBox.style.display = 'block';
+            errorBox.style.animation = "shake 0.5s";
+            setTimeout(() => errorBox.style.animation = "none", 500);
+        } else {
+            errorBox.style.display = 'none';
+            // Show "Sending..." UI then submit
+            document.getElementById('topLogo').style.display = 'none';
+            document.getElementById('emailSentOverlay').style.setProperty('display', 'flex', 'important');
+            
+            // Actually submit the form to the backend to send the email
+            setTimeout(() => {
+                document.getElementById('regForm').submit();
+            }, 1500); 
+        }
+    }
+
+    // --- PASSWORD LOGIC ---
+    function checkStrength() {
+        var password = document.getElementById("regPass1").value;
+        
+        var hasLen = password.length >= 8;
+        var hasLower = /[a-z]/.test(password); 
+        var hasUpper = /[A-Z]/.test(password);
+        var hasNumSym = /[0-9\W_]/.test(password); 
+
+        updateRule("ruleLen", hasLen);
+        updateRule("ruleLower", hasLower);
+        updateRule("ruleUpper", hasUpper);
+        updateRule("ruleNum", hasNumSym);
+
+        if (hasLen && hasLower && hasUpper && hasNumSym) { isPasswordStrong = true; } 
+        else { isPasswordStrong = false; }
+
+        checkMatch(); 
+        updateSubmitButton();
+    }
+
+    function updateRule(elementId, passed) {
+        var el = document.getElementById(elementId);
+        var icon = el.querySelector("i");
+        if (passed) {
+            el.classList.remove("text-danger"); el.classList.add("text-success");
+            if(icon) { icon.className = "fas fa-check-circle"; }
+        } else {
+            el.classList.remove("text-success"); el.classList.add("text-danger");
+            if(icon) { icon.className = "fas fa-circle"; }
+        }
+    }
+
+    function checkMatch() {
+        var p1 = document.getElementById("regPass1").value;
+        var p2 = document.getElementById("regPass2").value;
+        var label = document.getElementById("matchText");
+
+        if (p2.length > 0) {
+            label.style.visibility = "visible";
+            if (p1 === p2) {
+                isPasswordMatch = true;
+                label.className = "badge bg-success"; label.innerText = "PASSWORDS MATCH";
+                document.getElementById("regPass2").classList.remove("is-invalid"); document.getElementById("regPass2").classList.add("is-valid");
+            } else {
+                isPasswordMatch = false;
+                label.className = "badge bg-danger"; label.innerText = "PASSWORDS DO NOT MATCH";
+                document.getElementById("regPass2").classList.add("is-invalid");
+            }
+        } else {
+            label.style.visibility = "hidden"; isPasswordMatch = false;
+        }
+        updateSubmitButton();
+    }
+
+    function updateSubmitButton() {
+        var btn = document.getElementById("submitBtn");
+        if (isPasswordStrong && isPasswordMatch) { btn.disabled = false; } 
+        else { btn.disabled = true; }
+    }
+
+    function toggleRegPassword(fieldId, iconId) {
+        var x = document.getElementById(fieldId);
+        var icon = document.getElementById(iconId);
+        if (x.type === "password") { x.type = "text"; icon.classList.remove("fa-eye"); icon.classList.add("fa-eye-slash"); }
+        else { x.type = "password"; icon.classList.remove("fa-eye-slash"); icon.classList.add("fa-eye"); }
+    }
+</script>
+{% endblock %}

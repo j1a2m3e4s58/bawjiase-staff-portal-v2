@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Logo Badge Style (Consistent with Register Page) */
+    .logo-badge {
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        z-index: 10;
+    }
+
+    /* Mobile Responsiveness */
+    .login-card {
+        width: 400px;
+        position: relative;
+        overflow: visible; /* Allows logo to float outside */
+    }
+
+    @media (max-width: 576px) {
+        .login-card {
+            width: 95% !important; /* Full width on phone */
+            margin-top: 30px !important; /* Space for logo */
+        }
+    }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="card glass-card p-4 fade-in login-card mt-3"> 
+        
+        <div class="logo-badge">
+            <img src="{{ url_for('static', filename='img/barb_logo.png') }}" alt="BARB Logo" width="60" height="60" class="rounded-circle">
+        </div>
+
+        <div class="text-center mb-4 mt-4 pt-2">
+            <h5 class="fw-bold text-dark mb-0">Staff Portal</h5>
+            <p class="small text-muted">Secure Access</p>
+        </div>
+        
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary">OFFICIAL EMAIL</label>
+                <input type="email" name="email" class="form-control" placeholder="name@bawjiasearearuralbank.com" required>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary">PASSWORD</label>
+                <div class="input-group">
+                    <input type="password" name="password" class="form-control" id="passwordField" placeholder="Password" style="border-right: 0;" required>
+                    <span class="input-group-text bg-white border-start-0" style="cursor: pointer;" onclick="togglePassword()">
+                        <i class="fas fa-eye text-muted" id="eyeIcon"></i>
+                    </span>
+                </div>
+                <div id="capsWarning" class="text-danger small mt-1 fw-bold" style="display:none;">
+                    <i class="fas fa-exclamation-triangle"></i> CAPS LOCK IS ON
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="remember" id="remember">
+                    <label class="form-check-label small text-dark" for="remember">Remember me</label>
+                </div>
+                <a href="{{ url_for('forgot_password') }}" class="small text-secondary">Forgot?</a>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">
+                SECURE LOGIN
+            </button>
+        </form>
+
+        <div class="text-center pt-3 mt-2 border-top border-secondary-subtle">
+            <p class="small mb-1">New Staff? <a href="{{ url_for('register') }}" class="text-success">Sign Up</a></p>
+            <small class="text-muted d-block mt-2" style="font-size: 0.7rem;">Authorized Access Only</small>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePassword() {
+        var x = document.getElementById("passwordField");
+        var icon = document.getElementById("eyeIcon");
+        if (x.type === "password") { x.type = "text"; icon.classList.remove("fa-eye"); icon.classList.add("fa-eye-slash"); }
+        else { x.type = "password"; icon.classList.remove("fa-eye-slash"); icon.classList.add("fa-eye"); }
+    }
+    document.getElementById("passwordField").addEventListener("keyup", function(e) {
+        document.getElementById("capsWarning").style.display = e.getModifierState("CapsLock") ? "block" : "none";
+    });
+</script>
+{% endblock %}

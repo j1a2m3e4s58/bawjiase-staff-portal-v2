@@ -1,0 +1,249 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+/* --- 0. COLOR VARIABLES --- */
+:root {
+    /* Light Mode Defaults */
+    --bg-overlay: rgba(0, 51, 42, 0.4);
+    --card-bg: rgba(255, 255, 255, 0.85);
+    --card-border: rgba(255, 255, 255, 0.5);
+    --text-main: #333;
+    --text-muted-light: #6c757d;
+    --input-bg: rgba(255, 255, 255, 0.9);
+    --input-text: #000;
+    --badge-bg: white;
+    --glow-color: 0 15px 35px rgba(0,0,0,0.2); 
+    --brand-green: #004d40;
+    --brand-cyan: #64ffda;
+}
+
+/* Dark Mode Overrides */
+body.dark-mode {
+    --bg-overlay: rgba(2, 12, 27, 0.92);
+    --card-bg: #112240;
+    --card-border: rgba(100, 255, 218, 0.5);
+    --text-main: #ffffff;
+    --text-muted-dark: #cbd5e1;
+    --input-bg: #0a192f;
+    --input-text: #ffffff;
+    --badge-bg: #112240;
+    
+    /* Double Layer Neon Glow */
+    --glow-color: 0 0 15px rgba(100, 255, 218, 0.4), 
+                  0 0 40px rgba(100, 255, 218, 0.2); 
+}
+
+/* --- 1. BASE STYLES --- */
+body, html {
+    height: 100%;
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    overflow-x: hidden; 
+    overflow-y: auto; 
+}
+
+/* Base text color */
+h5, h4, h3, h6 { color: var(--text-main) !important; }
+p, .small, label, span { color: var(--text-main); }
+
+/* Force all text elements white in dark mode */
+body.dark-mode .text-dark, 
+body.dark-mode .text-black,
+body.dark-mode .text-muted,
+body.dark-mode .text-secondary,
+body.dark-mode .fw-bold,
+body.dark-mode small,
+body.dark-mode .form-label {
+    color: #ffffff !important;
+}
+
+/* --- 2. LAYOUT & CARDS --- */
+.bg-image {
+    background-image: url('/static/img/bg.jpg'); 
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    filter: blur(8px); 
+    -webkit-filter: blur(8px);
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.bg-overlay {
+    background-color: var(--bg-overlay);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    transition: background-color 0.5s ease;
+}
+
+.glass-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--glow-color);
+    border-radius: 20px;
+    z-index: 3; 
+    position: relative;
+    color: var(--text-main);
+    animation: floatUp 0.8s ease-out forwards;
+    overflow: visible !important; 
+    transition: box-shadow 0.5s ease, background 0.5s ease;
+}
+
+/* Logo Badge Size and Positioning */
+.logo-badge {
+    width: 100px !important;
+    height: 100px !important;
+    background: var(--badge-bg);
+    border-radius: 50%;
+    position: absolute;
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; 
+    z-index: 10;
+}
+
+.logo-badge img {
+    width: 90% !important; 
+    height: 90% !important;
+    object-fit: contain;
+}
+
+/* --- 3. INPUTS & FORMS --- */
+.form-control, .form-select {
+    background-color: var(--input-bg) !important;
+    border: 1px solid var(--card-border);
+    color: var(--input-text) !important;
+    border-radius: 8px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.dark-mode .form-control:focus {
+    border-color: var(--brand-cyan);
+    box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.2);
+    color: #fff !important;
+}
+
+/* --- 4. BUTTONS & LINKS --- */
+/* Base Link Color */
+a { 
+    color: var(--brand-green); 
+    font-weight: 600; 
+    text-decoration: none; 
+    transition: color 0.3s ease;
+}
+body.dark-mode a { color: var(--brand-cyan); }
+a:hover { text-decoration: underline; }
+
+/* Primary Action Button (.btn-success) */
+.btn-success {
+    background-color: #ffffff !important;
+    color: var(--brand-green) !important;
+    border: 1px solid var(--brand-green);
+    border-radius: 8px;
+    padding: 10px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+body.dark-mode .btn-success {
+    border: none;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); 
+}
+
+/* Secondary Button (.btn-light / Quick Actions) */
+.btn-light {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    color: var(--text-main);
+}
+
+body.dark-mode .btn-light {
+    background-color: #112240 !important; 
+    border: 1px solid var(--brand-cyan) !important; 
+    color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(100, 255, 218, 0.1);
+}
+
+body.dark-mode .btn-light i { color: var(--brand-cyan) !important; }
+
+/* Theme Toggle Button */
+.theme-switch-wrapper {
+    position: fixed;
+    bottom: 30px; 
+    right: 30px;  
+    z-index: 9999;
+}
+
+.btn-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--badge-bg);
+    color: var(--brand-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border: 2px solid var(--card-border);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+body.dark-mode .btn-circle {
+    color: var(--brand-cyan);
+    border-color: var(--brand-cyan);
+    background-color: #0a192f;
+    box-shadow: 0 0 15px rgba(100, 255, 218, 0.4); 
+}
+
+/* --- 5. DROPDOWN & TABLE FIXES --- */
+/* Dropdown Menu (Nav Bar Profile) */
+body.dark-mode .dropdown-menu {
+    background-color: #112240 !important;
+    border: 1px solid rgba(100, 255, 218, 0.3) !important;
+}
+
+body.dark-mode .dropdown-item { color: #ffffff !important; }
+body.dark-mode .dropdown-item:hover { color: var(--brand-cyan) !important; background-color: rgba(100, 255, 218, 0.1) !important; }
+body.dark-mode .dropdown-divider { border-top: 1px solid rgba(255, 255, 255, 0.1) !important; }
+
+/* Table Styling in Dark Mode */
+body.dark-mode .table {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: #ffffff !important;
+    background-color: transparent !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .table td, 
+body.dark-mode .table th,
+body.dark-mode .table tr {
+    background-color: transparent !important; 
+    color: #ffffff !important;
+    border-bottom: 1px solid #233554; 
+}
+
+body.dark-mode thead th {
+    color: var(--brand-cyan) !important; 
+    border-bottom: 2px solid var(--brand-cyan);
+}
+
+/* Animations */
+@keyframes floatUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }

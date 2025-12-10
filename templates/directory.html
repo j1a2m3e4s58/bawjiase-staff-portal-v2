@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg glass-card mx-3 mt-3 px-3 py-2 sticky-top">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('static', filename='img/barb_logo.png') }}" width="40" height="40" class="me-2 rounded-circle">
+            <span class="fw-bold text-success small ms-2">STAFF DIRECTORY</span>
+        </a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Back</a>
+    </div>
+</nav>
+
+<div class="container mt-4 pb-5" style="max-width: 1000px;">
+    
+    <div class="glass-card p-3 mb-4">
+        <div class="input-group shadow-sm">
+            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-primary"></i></span>
+            <input type="text" id="dirSearch" class="form-control border-start-0" placeholder="Search by name, branch, position or phone..." onkeyup="filterDirectory()">
+        </div>
+    </div>
+
+    <div class="d-flex flex-column gap-3" id="staffGrid">
+        {% for staff in directory %}
+        <div class="glass-card p-3 position-relative staff-card hover-shadow transition-all border-start border-5 border-success">
+            <div class="row align-items-center">
+                
+                <div class="col-md-4 d-flex align-items-center mb-2 mb-md-0">
+                    <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 50px; height: 50px; font-size: 1.2rem; min-width: 50px;">
+                        {{ staff.email[0].upper() }}
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark staff-text">{{ staff.fullname }}</h6>
+                        <span class="badge bg-light text-secondary border mt-1">{{ staff.position or staff.role }}</span>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-2 mb-md-0">
+                    <div class="small text-muted mb-1"><i class="fas fa-phone me-2 text-warning"></i>{{ staff.phone }}</div>
+                    <div class="small text-muted"><i class="fas fa-envelope me-2 text-primary"></i>{{ staff.email }}</div>
+                </div>
+
+                <div class="col-md-3 mb-2 mb-md-0">
+                    <div class="small text-muted mb-1"><i class="fas fa-building me-2 text-success"></i><span class="staff-text">{{ staff.branch }}</span></div>
+                    <div class="small text-muted"><i class="fas fa-briefcase me-2 text-info"></i><span class="staff-text">{{ staff.department }}</span></div>
+                </div>
+
+                {% if user.department in ['IT', 'HR'] or user.role == 'Super Admin' %}
+                <div class="col-md-2 text-end">
+                    <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm"
+                            onclick="openEditModal(this)"
+                            data-id="{{ staff.id }}"
+                            data-position="{{ staff.position or '' }}"
+                            data-branch="{{ staff.branch }}"
+                            data-dept="{{ staff.department }}">
+                        <i class="fas fa-pen me-1"></i> Edit
+                    </button>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-users fa-3x mb-3 opacity-25"></i>
+            <p>No staff members found.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="modal" id="adminEditModal" tabindex="-1" role="dialog" aria-hidden="true" style="background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            
+            <div class="modal-header border-0 p-4 pb-0">
+                <h5 class="modal-title fw-bold text-primary">Update Staff Details</h5>
+                <button type="button" class="btn-close" onclick="closeEditModal()"></button>
+            </div>
+
+            <div class="modal-body p-4 text-start">
+                <form action="{{ url_for('admin_update_staff') }}" method="POST" id="sharedEditForm">
+                    <input type="hidden" name="user_id" id="modalUserId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Position / Job Title</label>
+                        <input type="text" class="form-control" name="position" id="modalPosition" placeholder="e.g. Teller">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Branch</label>
+                        <select class="form-select" name="branch" id="modalBranch">
+                            <option>HEAD OFFICE</option>
+                            <option>BAWJIASE</option>
+                            <option>ADEISO</option>
+                            <option>OFAAKOR</option>
+                            <option>KASOA NEW MARKET</option>
+                            <option>KASOA MAIN</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Department</label>
+                        <select class="form-select" name="department" id="modalDept">
+                            <option value="" disabled selected>Select Department...</option>
+                            <option value="IT">IT</option>
+                            <option value="BANKING OPERATIONS">BANKING OPERATIONS</option>
+                            <option value="E-BANKING">E-BANKING</option>
+                            <option value="MICROFINANCE">MICROFINANCE</option>
+                            <option value="CREDIT">CREDIT</option>
+                            <option value="RECOVERY">RECOVERY</option>
+                            <option value="SUSU">SUSU</option>
+                            <option value="COMPLIANCE">COMPLIANCE</option>
+                            <option value="AUDIT">AUDIT</option>
+                            <option value="HR">HR</option>
+                            <option value="ADMIN">ADMIN</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-light text-secondary rounded-pill" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" form="sharedEditForm" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm">Save Changes</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Search Filter
+    function filterDirectory() {
+        let input = document.getElementById('dirSearch').value.toUpperCase();
+        let items = document.getElementsByClassName('staff-card');
+        for (let i = 0; i < items.length; i++) {
+            let text = items[i].innerText.toUpperCase();
+            items[i].style.display = text.indexOf(input) > -1 ? "" : "none";
+        }
+    }
+
+    // Open Modal Logic
+    function openEditModal(btn) {
+        // 1. Get data safely from attributes
+        var id = btn.getAttribute('data-id');
+        var position = btn.getAttribute('data-position');
+        var branch = btn.getAttribute('data-branch');
+        var dept = btn.getAttribute('data-dept');
+
+        // 2. Fill the form
+        document.getElementById('modalUserId').value = id;
+        document.getElementById('modalPosition').value = position;
+        document.getElementById('modalBranch').value = branch;
+        
+        // 3. Set Department Dropdown (It will auto-select if value matches)
+        let deptSelect = document.getElementById('modalDept');
+        deptSelect.value = dept; 
+
+        // If the current dept isn't in the list (e.g. typo), it defaults to empty.
+        // You can handle that here if needed, but usually it's fine.
+
+        // 4. Show Modal
+        document.getElementById('adminEditModal').style.display = 'block';
+        document.getElementById('adminEditModal').classList.add('show');
+    }
+
+    // Close Modal Logic
+    function closeEditModal() {
+        document.getElementById('adminEditModal').style.display = 'none';
+        document.getElementById('adminEditModal').classList.remove('show');
+    }
+</script>
+{% endblock %}

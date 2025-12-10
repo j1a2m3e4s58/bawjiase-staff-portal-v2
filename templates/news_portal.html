@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<nav class="navbar navbar-expand-lg glass-card mx-2 mx-md-3 mt-3 px-3 py-2 sticky-top">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
+            <i class="fas fa-arrow-left text-success me-2"></i> <span class="fw-bold text-success">Back to Dashboard</span>
+        </a>
+    </div>
+</nav>
+
+<div class="container mt-3 pb-5" style="max-width: 800px;">
+    
+    <div class="glass-card p-3 p-md-4 mb-4">
+        <div class="d-flex align-items-center mb-3">
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                {{ user.email[0].upper() }}
+            </div>
+            <div>
+                <h5 class="fw-bold mb-0 text-dark">Create Post</h5>
+                <span class="badge bg-light text-secondary border">Admin Portal</span>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('news_portal') }}" enctype="multipart/form-data" id="postForm" onsubmit="animatePost(event)">
+            <div class="mb-3">
+                <input type="text" name="title" class="form-control fw-bold border-0 bg-light p-3" placeholder="Subject..." required>
+            </div>
+            <div class="mb-3">
+                <textarea name="body" class="form-control border-0 bg-light p-3" rows="3" placeholder="What's happening?" required></textarea>
+            </div>
+
+            <ul class="nav nav-tabs nav-fill mb-3" id="postTabs" role="tablist">
+                <li class="nav-item"><button class="nav-link active small" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button"><i class="fas fa-paperclip me-1"></i> Attach</button></li>
+                <li class="nav-item"><button class="nav-link small" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera" type="button" onclick="startCamera()"><i class="fas fa-camera me-1"></i> Camera</button></li>
+                <li class="nav-item"><button class="nav-link small" id="poll-tab" data-bs-toggle="tab" data-bs-target="#poll" type="button"><i class="fas fa-poll me-1"></i> Poll</button></li>
+            </ul>
+
+            <div class="tab-content border rounded p-3 bg-white" id="postTabsContent">
+                
+                <div class="tab-pane fade show active" id="upload">
+                    <label class="form-label small text-muted">Select File (Image/PDF/Word)</label>
+                    
+                    <input type="file" name="news_image" class="form-control mb-2" id="fileUploadInput" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" onchange="simulateUpload()">
+                    
+                    <div id="uploadProgressContainer" class="mt-2" style="display: none;">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-success fw-bold"><i class="fas fa-arrow-down"></i> Uploading...</span>
+                            <span id="uploadPercent">0%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div id="progressBar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" name="allow_download" id="allowDownload" checked>
+                        <label class="form-check-label small fw-bold" for="allowDownload">Allow Staff to Download</label>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="camera">
+                    <div class="text-center">
+                        <div id="cameraArea">
+                            <video id="video" style="width: 100%; max-height: 300px; object-fit: cover;" autoplay class="rounded border bg-black"></video>
+                            <button type="button" class="btn btn-warning mt-2 rounded-pill w-50" onclick="takeSnapshot()"><i class="fas fa-camera"></i> Snap</button>
+                        </div>
+                        <div id="cropArea" style="display:none;">
+                            <div style="max-height: 300px; overflow: hidden;">
+                                <img id="imageToCrop" style="max-width: 100%;">
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-secondary rounded-pill btn-sm" onclick="resetCamera()">Retake</button>
+                                <button type="button" class="btn btn-success rounded-pill btn-sm" onclick="cropAndSave()"><i class="fas fa-crop-alt"></i> Use Photo</button>
+                            </div>
+                        </div>
+                        <div id="resultArea" style="display:none;" class="mt-2">
+                            <p class="text-success small fw-bold"><i class="fas fa-check-circle"></i> Photo Ready</p>
+                            <img id="finalImage" class="img-fluid rounded shadow-sm" style="max-height: 200px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="poll">
+                    <label class="form-label fw-bold">Question</label>
+                    <input type="text" name="poll_question" class="form-control mb-2" placeholder="Ask something...">
+                    <label class="form-label small text-muted">Options</label>
+                    <div id="pollOptions">
+                        <input type="text" name="poll_options" class="form-control mb-2" placeholder="Option 1">
+                        <input type="text" name="poll_options" class="form-control mb-2" placeholder="Option 2">
+                    </div>
+                    <button type="button" class="btn btn-sm btn-light border w-100" onclick="addOption()">+ Add Option</button>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" id="postBtn" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">
+                    <i class="fas fa-paper-plane me-2"></i> Post Announcement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="postingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:9999; flex-direction:column; align-items:center; justify-content:center;">
+    <div class="animate-fly"><i class="fas fa-paper-plane text-success" style="font-size: 5rem;"></i></div>
+    <h3 class="mt-4 fw-bold text-success animate-fade">Broadcasting...</h3>
+</div>
+
+<script>
+    // --- UPLOAD SIMULATION ---
+    function simulateUpload() {
+        let fileInput = document.getElementById('fileUploadInput');
+        let container = document.getElementById('uploadProgressContainer');
+        let progressBar = document.getElementById('progressBar');
+        let percentText = document.getElementById('uploadPercent');
+        let btn = document.getElementById('postBtn');
+
+        if (fileInput.files.length > 0) {
+            container.style.display = 'block';
+            btn.disabled = true; 
+            let width = 0;
+            
+            let interval = setInterval(function() {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    percentText.innerText = "100% (Ready)";
+                    percentText.classList.add("text-success");
+                    progressBar.classList.remove("progress-bar-animated");
+                    btn.disabled = false;
+                } else {
+                    width += 10; 
+                    progressBar.style.width = width + '%';
+                    percentText.innerText = width + '%';
+                }
+            }, 100);
+        }
+    }
+
+    function animatePost(e) {
+        e.preventDefault();
+        document.getElementById('postingOverlay').style.display = 'flex';
+        setTimeout(() => { e.target.submit(); }, 2000);
+    }
+
+    // Camera scripts
+    let video = document.getElementById('video');
+    let cropper;
+    let fileInput = document.getElementById('fileUploadInput');
+    
+    function startCamera() {
+        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(stream) {
+                video.srcObject = stream; video.play();
+            });
+        }
+    }
+    
+    function takeSnapshot() {
+        let canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        document.getElementById('cameraArea').style.display = 'none';
+        document.getElementById('cropArea').style.display = 'block';
+        let img = document.getElementById('imageToCrop');
+        img.src = canvas.toDataURL('image/png');
+        if(cropper) cropper.destroy();
+        cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1 });
+    }
+    
+    function cropAndSave() {
+        let canvas = cropper.getCroppedCanvas();
+        canvas.toBlob(function(blob) {
+            let file = new File([blob], "camera_capture.png", { type: "image/png" });
+            let container = new DataTransfer(); container.items.add(file);
+            fileInput.files = container.files;
+            document.getElementById('cropArea').style.display = 'none';
+            document.getElementById('resultArea').style.display = 'block';
+            document.getElementById('finalImage').src = canvas.toDataURL();
+        });
+    }
+    
+    function resetCamera() {
+        document.getElementById('cropArea').style.display = 'none';
+        document.getElementById('cameraArea').style.display = 'block';
+        if(cropper) cropper.destroy();
+    }
+    
+    function addOption() {
+        let div = document.createElement('div');
+        div.innerHTML = '<input type="text" name="poll_options" class="form-control mb-2" placeholder="New Option">';
+        document.getElementById('pollOptions').appendChild(div);
+    }
+</script>
+<style>
+    @keyframes fly { 0% { transform: translate(-50px, 50px) scale(0.5); opacity: 0; } 50% { transform: translate(0, 0) scale(1.2); opacity: 1; } 100% { transform: translate(50px, -50px) scale(1); opacity: 0; } }
+    .animate-fly { animation: fly 2s ease-in-out infinite; }
+    .animate-fade { animation: fadeIn 1s ease-in; }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+</style>
+{% endblock %}
