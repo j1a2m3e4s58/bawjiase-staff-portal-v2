@@ -1,17 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<nav class="navbar navbar-expand-lg glass-card mx-2 mx-md-3 mt-2 mt-md-3 px-2 px-md-3 py-2 sticky-top"
-     style="border-radius: 12px;">
+<nav class="navbar navbar-expand-lg glass-card mx-3 mt-3 px-3 py-2 sticky-top">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
-            <i class="fas fa-arrow-left text-success me-2"></i>
-            <span class="fw-bold text-success small">Back to Dashboard</span>
+            <i class="fas fa-arrow-left text-success me-2"></i> <span class="fw-bold text-success">Back to Dashboard</span>
         </a>
     </div>
 </nav>
 
-<div class="container mt-3 mt-md-5 px-2 px-md-0" style="max-width: 600px;">
+<div class="container mt-5" style="max-width: 600px;">
     
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -21,32 +19,28 @@
         {% endif %}
     {% endwith %}
 
-    <div class="glass-card p-4 p-md-5">
+    <div class="glass-card p-5">
         
         <form method="POST" action="{{ url_for('profile') }}" enctype="multipart/form-data">
             
             <div class="text-center mb-4">
                 <div class="position-relative d-inline-block">
                     {% if user.image_file == 'default.jpg' %}
-                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                             style="width: 100px; height: 100px; font-size: 2.5rem;">
+                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 120px; height: 120px; font-size: 3rem;">
                             {{ user.email[0].upper() }}
                         </div>
                     {% else %}
-                        <img src="{{ image_file }}" class="rounded-circle shadow-sm"
-                             style="width: 100px; height: 100px; object-fit: cover; border: 4px solid white;">
+                        <img src="{{ image_file }}" class="rounded-circle shadow-sm" style="width: 120px; height: 120px; object-fit: cover; border: 4px solid white;">
                     {% endif %}
 
-                    <label for="fileInput"
-                           class="position-absolute bottom-0 end-0 bg-white text-primary rounded-circle shadow p-2"
-                           style="cursor: pointer; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+                    <label for="fileInput" class="position-absolute bottom-0 end-0 bg-white text-primary rounded-circle shadow p-2" style="cursor: pointer; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-camera"></i>
                     </label>
                     <input type="file" id="fileInput" name="profile_pic" class="d-none" onchange="this.form.submit()">
                 </div>
                 
-                <h4 class="fw-bold text-dark mt-3 mb-1">{{ user.fullname }}</h4>
-                <p class="text-muted small">{{ user.position or user.role }} | {{ user.branch }}</p>
+                <h3 class="fw-bold text-dark mt-3">{{ user.fullname }}</h3>
+                <p class="text-muted">{{ user.position or user.role }} | {{ user.branch }}</p>
             </div>
 
             <div class="row g-3">
@@ -54,34 +48,26 @@
                     <label class="form-label fw-bold small text-muted">Full Name</label>
                     <input type="text" class="form-control" name="fullname" value="{{ user.fullname }}" required>
                 </div>
-                <div class="col-12 col-md-6">
+                <div class="col-md-6">
                     <label class="form-label fw-bold small text-muted">Phone Number</label>
                     <input type="text" class="form-control" name="phone" value="{{ user.phone }}" required>
                 </div>
-                <div class="col-12 col-md-6">
+                <div class="col-md-6">
                     <label class="form-label fw-bold small text-muted">Email (Read Only)</label>
                     <input type="text" class="form-control bg-light" value="{{ user.email }}" readonly>
                 </div>
                 
                 <hr class="my-4">
-
-                <h6 class="fw-bold text-primary mb-3">
-                    <i class="fas fa-exchange-alt me-2"></i>Update Transfer Details
-                </h6>
+                <h6 class="fw-bold text-primary mb-3"><i class="fas fa-exchange-alt me-2"></i>Update Transfer Details</h6>
                 
-                <div class="col-12 col-md-6">
+                <div class="col-md-6">
                     <label class="form-label fw-bold small text-muted">Current Branch</label>
                     <select class="form-select" name="branch" required>
                         <option value="{{ user.branch }}" selected>{{ user.branch }}</option>
-                        <option>HEAD OFFICE</option>
-                        <option>BAWJIASE</option>
-                        <option>ADEISO</option>
-                        <option>OFAAKOR</option>
-                        <option>KASOA NEW MARKET</option>
-                        <option>KASOA MAIN</option>
+                        <option>HEAD OFFICE</option><option>BAWJIASE</option><option>ADEISO</option><option>OFAAKOR</option><option>KASOA NEW MARKET</option><option>KASOA MAIN</option>
                     </select>
                 </div>
-                <div class="col-12 col-md-6">
+                <div class="col-md-6">
                     <label class="form-label fw-bold small text-muted">Department</label>
                     <input type="text" class="form-control" name="department" value="{{ user.department }}" required>
                 </div>

@@ -21,15 +21,11 @@
         <div class="bg-overlay"></div>
     {% endif %}
 
-    <!-- Flash messages: centered, mobile-friendly width -->
-    <div class="container position-fixed top-0 start-50 translate-middle-x mt-3 px-2"
-         style="z-index: 9999; max-width: 600px;">
+    <div class="container position-absolute top-0 start-50 translate-middle-x mt-5" style="z-index: 9999; max-width: 600px;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} shadow-lg text-center fw-bold fade-in mb-2"
-                         role="alert"
-                         id="flashMessage">
+                    <div class="alert alert-{{ category }} shadow-lg text-center fw-bold fade-in" role="alert" id="flashMessage">
                         {{ message }}
                     </div>
                 {% endfor %}

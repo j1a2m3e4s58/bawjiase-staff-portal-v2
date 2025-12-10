@@ -8,37 +8,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
 from datetime import datetime
-from flask_mail import Mail, Message
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'bawjiase-secure-key-2025'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bawjiase.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# ===============================
-# EMAIL CONFIGURATION (DEV MODE)
-# ===============================
-
-# Using Gmail SMTP as transport (can be swapped to bank SMTP later).
-# Email address is strictly the bank domain as requested.
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
-
-# DEV EMAIL + PASSWORD (PLACEHOLDER)
-# This email is what will appear as the sender.
-# The password string is NOT used while MAIL_SUPPRESS_SEND = True.
-app.config['MAIL_USERNAME'] = 'no-reply@bawjiasearearuralbank.com'
-app.config['MAIL_PASSWORD'] = 'DEV_ONLY_PLACEHOLDER_PASSWORD'
-
-# Default sender for all outgoing emails in the portal
-app.config['MAIL_DEFAULT_SENDER'] = ('BARB Staff Portal', 'no-reply@bawjiasearearuralbank.com')
-
-# DEV ONLY – emails will NOT actually be sent.
-# TODO: REMOVE THIS LINE and set a real SMTP password before going live.
-app.config['MAIL_SUPPRESS_SEND'] = True
 
 # CONFIGURE FOLDERS
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -53,10 +27,6 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Email + token tools
-mail = Mail(app)
-serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-
 # --- ASSOCIATION TABLE ---
 hidden_posts = db.Table('hidden_posts',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
@@ -69,18 +39,15 @@ class User(db.Model, UserMixin):
     fullname = db.Column(db.String(150), nullable=False)
     phone = db.Column(db.String(20), nullable=False, default="N/A")
     email = db.Column(db.String(150), unique=True, nullable=False)
-    email_verified = db.Column(db.Boolean, default=False)  # NEW FIELD
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(50), default='General Staff')
     position = db.Column(db.String(100), nullable=True, default='Staff')
     department = db.Column(db.String(100), nullable=False)
     branch = db.Column(db.String(100), nullable=False)
     image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
-    is_active_user = db.Column(db.Boolean, default=True)
+    is_active_user = db.Column(db.Boolean, default=True) 
     hidden_announcements = db.relationship('Announcement', secondary=hidden_posts, backref='hidden_by')
-
-    def get_id(self):
-        return str(self.id)
+    def get_id(self): return str(self.id)
 
 class Announcement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -115,8 +82,8 @@ class PollVote(db.Model):
 class Form(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150), nullable=False)
-    category = db.Column(db.String(50), nullable=False)
-    filename = db.Column(db.String(500), nullable=False)
+    category = db.Column(db.String(50), nullable=False) 
+    filename = db.Column(db.String(500), nullable=False) 
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
 
 class IncidentReport(db.Model):
@@ -143,8 +110,7 @@ class ProfileAmendment(db.Model):
     date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
 
 @login_manager.user_loader
-def load_user(user_id):
-    return db.session.get(User, int(user_id))
+def load_user(user_id): return db.session.get(User, int(user_id))
 
 @app.context_processor
 def inject_notifications():
@@ -155,94 +121,17 @@ def inject_notifications():
             return dict(unread_count=incident_count + amendment_count)
     return dict(unread_count=0)
 
-# --- EMAIL VERIFICATION HELPERS ---
-def send_verification_email(user):
-    token = serializer.dumps(user.id, salt='email-confirm')
-    verify_url = url_for('verify_email', token=token, _external=True)
-
-    msg = Message(
-        subject='Verify your BARB Staff Portal account',
-        recipients=[user.email],
-    )
-    msg.body = f"""Dear {user.fullname},
-
-Welcome to the Bawjiase Area Rural Bank Staff Portal.
-
-Please click the link below to verify your email and activate your account:
-
-{verify_url}
-
-If you did not create this account, you can safely ignore this email.
-
-Thank you.
-BARB ICT Unit
-"""
-    mail.send(msg)
-
-def send_inline_verification_code(user, code):
-    """Send a 6-digit verification code to the user's email."""
-    # DEV: log code to console so you can test easily
-    app.logger.info(f"[DEV] Verification code for {user.email}: {code}")
-
-    msg = Message(
-        subject='BARB Staff Portal – Email Verification Code',
-        recipients=[user.email]
-    )
-    msg.body = f"""Dear {user.fullname},
-
-Welcome to the Bawjiase Area Rural Bank Staff Portal.
-
-Use the verification code below to activate your account:
-
-CODE: {code}
-
-This code will expire in 10 minutes.
-
-If you did not create this account, you can safely ignore this email.
-
-Thank you.
-BARB ICT Unit
-"""
-    mail.send(msg)
-
-def send_password_reset_email(user):
-    """Send a password reset link to the user's email."""
-    token = serializer.dumps(user.email, salt='password-reset')
-    reset_url = url_for('reset_password', token=token, _external=True)
-
-    # DEV: log the reset link to the console so you can test without real email
-    app.logger.info(f"[DEV] Password reset link for {user.email}: {reset_url}")
-
-    msg = Message(
-        subject='BARB Staff Portal – Reset Your Password',
-        recipients=[user.email]
-    )
-    msg.body = f"""Hello {user.fullname},
-
-You (or someone using your email) requested to reset your BARB Staff Portal password.
-
-To reset your password, click the secure link below:
-
-{reset_url}
-
-If you did NOT request this, please ignore this email. Your password will remain unchanged.
-
-Best regards,
-Bawjiase Area Rural Bank – IT Team
-"""
-    mail.send(msg)
-
 def save_uploaded_file(form_file, folder):
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_file.filename)
     f_ext = f_ext.lower()
     picture_fn = random_hex + f_ext
     picture_path = os.path.join(folder, picture_fn)
-
+    
     # Updated allowed list for Excel and PPT
     allowed_docs = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
     allowed_images = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-
+    
     if f_ext in allowed_docs:
         form_file.save(picture_path)
         return picture_fn
@@ -254,30 +143,21 @@ def save_uploaded_file(form_file, folder):
                 i.thumbnail(output_size)
             i.save(picture_path)
             return picture_fn
-        except:
-            return None
+        except: return None
     return None
 
 # --- ROUTES ---
 @app.route('/')
-def home():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+def home(): 
+    if current_user.is_authenticated: return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    with app.app_context():
-        db.create_all()
+    with app.app_context(): db.create_all()
     if request.method == 'POST':
-        email = request.form.get('email', '').lower()
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(email=request.form.get('email').lower()).first()
         if user and bcrypt.check_password_hash(user.password, request.form.get('password')):
-            # Block login if email not verified
-            if not user.email_verified:
-                flash('Please verify your email address before logging in. We have sent you a new verification email.', 'warning')
-                send_verification_email(user)
-                return redirect(url_for('login'))
             login_user(user)
             return redirect(url_for('dashboard'))
         flash('Invalid credentials', 'danger')
@@ -286,149 +166,16 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form.get('email', '').lower()
-        if User.query.filter_by(email=email).first():
-            flash('An account with this email already exists.', 'warning')
+        if User.query.filter_by(email=request.form.get('email').lower()).first():
             return redirect(url_for('register'))
-
         pw = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
-        user = User(
-            fullname=request.form.get('fullname'),
-            phone=request.form.get('phone'),
-            email=email,
-            password=pw,
-            department=request.form.get('department'),
-            branch=request.form.get('branch')
-        )
-        user.email_verified = False
-        db.session.add(user)
+        db.session.add(User(fullname=request.form.get('fullname'), phone=request.form.get('phone'), email=request.form.get('email').lower(), password=pw, department=request.form.get('department'), branch=request.form.get('branch')))
         db.session.commit()
-
-        # --- NEW: inline verification code flow ---
-        code = f"{secrets.randbelow(1000000):06d}"
-        payload = {'user_id': user.id, 'code': code}
-        verify_token = serializer.dumps(payload, salt='inline-email-code')
-
-        # send code to user's email (logged in console in DEV)
-        send_inline_verification_code(user, code)
-
-        # show code entry screen instead of sending link + redirect
-        return render_template('verify_code.html', email=user.email, token=verify_token)
-
+        return redirect(url_for('login'))
     return render_template('register.html')
 
-@app.route('/verify-code', methods=['POST'])
-def verify_code():
-    token = request.form.get('token')
-    code_entered = (request.form.get('code') or "").strip()
-
-    if not token or not code_entered:
-        flash('Invalid verification attempt.', 'danger')
-        return redirect(url_for('register'))
-
-    try:
-        payload = serializer.loads(token, salt='inline-email-code', max_age=60 * 10)  # 10 minutes
-    except SignatureExpired:
-        flash('Verification code expired. Please register again or request a new code.', 'warning')
-        return redirect(url_for('register'))
-    except BadSignature:
-        flash('Invalid verification code.', 'danger')
-        return redirect(url_for('register'))
-
-    if code_entered != payload.get('code'):
-        user = db.session.get(User, payload.get('user_id'))
-        email = user.email if user else ''
-        flash('Incorrect verification code. Please try again.', 'danger')
-        return render_template('verify_code.html', email=email, token=token)
-
-    user = db.session.get(User, payload.get('user_id'))
-    if not user:
-        flash('User not found for this verification code.', 'danger')
-        return redirect(url_for('register'))
-
-    user.email_verified = True
-    db.session.commit()
-
-    # show success animation page, which will redirect to login
-    return render_template('verify_success.html')
-
-@app.route('/verify/<token>')
-def verify_email(token):
-    try:
-        user_id = serializer.loads(token, salt='email-confirm', max_age=60 * 60 * 24)  # 24 hours
-    except SignatureExpired:
-        flash('Verification link has expired. Please log in to request a new verification email.', 'warning')
-        return redirect(url_for('login'))
-    except BadSignature:
-        flash('Invalid verification link.', 'danger')
-        return redirect(url_for('login'))
-
-    user = User.query.get(user_id)
-    if not user:
-        flash('User not found.', 'danger')
-        return redirect(url_for('login'))
-
-    if user.email_verified:
-        flash('Email already verified. You can log in.', 'info')
-    else:
-        user.email_verified = True
-        db.session.commit()
-        flash('Your email has been verified. You can now log in.', 'success')
-
-    return redirect(url_for('login'))
-
-@app.route('/forgot-password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        email = (request.form.get('email') or "").strip().lower()
-        if email:
-            user = User.query.filter_by(email=email).first()
-            if user:
-                # Send real reset email (but don't reveal existence)
-                try:
-                    send_password_reset_email(user)
-                except Exception:
-                    # Fail silently for the user; you can log errors internally
-                    pass
-
-        # Instead of reloading the same page, show a nice success animation
-        return render_template('reset_link_sent.html')
-
-    # First time loading the page (GET)
-    return render_template('forgot_password.html', reset_sent=False)
-
-@app.route('/reset-password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    try:
-        email = serializer.loads(token, salt='password-reset', max_age=3600)
-    except Exception:
-        flash('The reset link is invalid or has expired. Please request a new one.', 'danger')
-        return redirect(url_for('forgot_password'))
-
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        flash('Account not found for this reset link.', 'danger')
-        return redirect(url_for('forgot_password'))
-
-    if request.method == 'POST':
-        password = request.form.get('password') or ''
-        confirm = request.form.get('confirm_password') or ''
-
-        if len(password) < 8:
-            flash('Password must be at least 8 characters long.', 'danger')
-            return redirect(url_for('reset_password', token=token))
-
-        if password != confirm:
-            flash('Passwords do not match.', 'danger')
-            return redirect(url_for('reset_password', token=token))
-
-        user.password = bcrypt.generate_password_hash(password).decode('utf-8')
-        db.session.commit()
-
-        flash('Password updated successfully. You can now log in.', 'success')
-        return redirect(url_for('login'))
-
-    return render_template('reset_password.html', token=token)
+@app.route('/forgot-password')
+def forgot_password(): return render_template('forgot_password.html')
 
 @app.route('/dashboard')
 @login_required
@@ -457,7 +204,7 @@ def move_to_trash(post_id):
     if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin':
         return redirect(url_for('dashboard'))
     post = Announcement.query.get_or_404(post_id)
-    post.is_deleted = True
+    post.is_deleted = True 
     db.session.commit()
     flash('Moved to Recycle Bin.', 'info')
     return redirect(url_for('dashboard'))
@@ -490,10 +237,8 @@ def permanent_delete(post_id):
     if post.image_file:
         try:
             file_path = os.path.join(app.config['NEWS_FOLDER'], post.image_file)
-            if os.path.exists(file_path):
-                os.remove(file_path)
-        except:
-            pass
+            if os.path.exists(file_path): os.remove(file_path)
+        except: pass
     db.session.delete(post)
     db.session.commit()
     flash('Permanently Deleted.', 'danger')
@@ -509,10 +254,8 @@ def empty_trash():
         if post.image_file:
             try:
                 file_path = os.path.join(app.config['NEWS_FOLDER'], post.image_file)
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-            except:
-                pass
+                if os.path.exists(file_path): os.remove(file_path)
+            except: pass
         db.session.delete(post)
     db.session.commit()
     flash('Bin Emptied.', 'warning')
@@ -529,26 +272,18 @@ def news_portal():
         body = request.form.get('body')
         category = 'HR' if current_user.department == 'HR' else 'IT'
         allow_download = True if request.form.get('allow_download') else False
-
+        
         image_filename = None
         if 'news_image' in request.files:
             file = request.files['news_image']
             if file.filename != '':
                 saved = save_uploaded_file(file, app.config['NEWS_FOLDER'])
-                if saved:
-                    image_filename = saved
+                if saved: image_filename = saved
                 else:
                     flash('File error.', 'danger')
                     return redirect(url_for('news_portal'))
 
-        post = Announcement(
-            title=title,
-            body=body,
-            category=category,
-            author=current_user.fullname,
-            image_file=image_filename,
-            allow_download=allow_download
-        )
+        post = Announcement(title=title, body=body, category=category, author=current_user.fullname, image_file=image_filename, allow_download=allow_download)
         db.session.add(post)
         db.session.commit()
 
@@ -558,8 +293,7 @@ def news_portal():
             db.session.add(poll)
             db.session.commit()
             for opt in request.form.getlist('poll_options'):
-                if opt.strip():
-                    db.session.add(PollOption(text=opt, poll_id=poll.id))
+                if opt.strip(): db.session.add(PollOption(text=opt, poll_id=poll.id))
             db.session.commit()
 
         flash('News Posted Successfully!', 'success')
@@ -576,14 +310,12 @@ def edit_post(post_id):
     post.title = request.form.get('title')
     post.body = request.form.get('body')
     post.allow_download = True if request.form.get('allow_download') else False
-    if request.form.get('remove_file'):
-        post.image_file = None
+    if request.form.get('remove_file'): post.image_file = None
     if 'news_image' in request.files:
         file = request.files['news_image']
         if file.filename != '':
             saved = save_uploaded_file(file, app.config['NEWS_FOLDER'])
-            if saved:
-                post.image_file = saved
+            if saved: post.image_file = saved
     db.session.commit()
     flash('Updated!', 'success')
     return redirect(url_for('dashboard'))
@@ -600,12 +332,7 @@ def vote(poll_id, option_id):
 
 @app.route('/directory')
 @login_required
-def directory():
-    return render_template(
-        'directory.html',
-        user=current_user,
-        directory=User.query.order_by(User.fullname).all()
-    )
+def directory(): return render_template('directory.html', user=current_user, directory=User.query.order_by(User.fullname).all())
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -619,8 +346,7 @@ def profile():
             file = request.files['profile_pic']
             if file.filename != '':
                 saved = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
-                if saved:
-                    current_user.image_file = saved
+                if saved: current_user.image_file = saved
         db.session.commit()
         return redirect(url_for('profile'))
     image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
@@ -629,8 +355,7 @@ def profile():
 @app.route('/admin-update-staff', methods=['POST'])
 @login_required
 def admin_update_staff():
-    if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin':
-        return redirect(url_for('directory'))
+    if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin': return redirect(url_for('directory'))
     staff = User.query.get(request.form.get('user_id'))
     if staff:
         staff.position = request.form.get('position')
@@ -641,12 +366,7 @@ def admin_update_staff():
 
 @app.route('/forms')
 @login_required
-def forms():
-    return render_template(
-        'forms.html',
-        user=current_user,
-        forms=Form.query.order_by(Form.category).all()
-    )
+def forms(): return render_template('forms.html', user=current_user, forms=Form.query.order_by(Form.category).all())
 
 @app.route('/it-support', methods=['GET', 'POST'])
 @login_required
@@ -654,26 +374,11 @@ def it_support():
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         if form_type == 'incident':
-            db.session.add(IncidentReport(
-                agency=request.form.get('agency'),
-                issue_category=request.form.get('issue'),
-                description=request.form.get('description'),
-                reporter_name=request.form.get('reporter_name'),
-                contact=request.form.get('contact')
-            ))
+            db.session.add(IncidentReport(agency=request.form.get('agency'), issue_category=request.form.get('issue'), description=request.form.get('description'), reporter_name=request.form.get('reporter_name'), contact=request.form.get('contact')))
             db.session.commit()
             flash('Incident Report Submitted!', 'success_modal')
         elif form_type == 'amendment':
-            db.session.add(ProfileAmendment(
-                fullname=request.form.get('fullname'),
-                phone=request.form.get('phone'),
-                t24_username=request.form.get('t24_username'),
-                agency=request.form.get('agency'),
-                request_type=request.form.get('request_type'),
-                new_role=request.form.get('new_role'),
-                dept_change=request.form.get('dept_change'),
-                transfer_location=request.form.get('transfer_location')
-            ))
+            db.session.add(ProfileAmendment(fullname=request.form.get('fullname'), phone=request.form.get('phone'), t24_username=request.form.get('t24_username'), agency=request.form.get('agency'), request_type=request.form.get('request_type'), new_role=request.form.get('new_role'), dept_change=request.form.get('dept_change'), transfer_location=request.form.get('transfer_location')))
             db.session.commit()
             flash('Request Submitted!', 'success_modal')
         return redirect(url_for('it_support'))
@@ -682,74 +387,37 @@ def it_support():
 @app.route('/it-notifications')
 @login_required
 def it_notifications():
-    if current_user.department != 'IT' and current_user.role != 'Super Admin':
-        return redirect(url_for('dashboard'))
-    return render_template(
-        'it_notifications.html',
-        user=current_user,
-        incidents=IncidentReport.query.order_by(
-            IncidentReport.status.desc(),
-            IncidentReport.date_submitted.desc()
-        ).all(),
-        amendments=ProfileAmendment.query.order_by(
-            ProfileAmendment.status.desc(),
-            ProfileAmendment.date_submitted.desc()
-        ).all()
-    )
+    if current_user.department != 'IT' and current_user.role != 'Super Admin': return redirect(url_for('dashboard'))
+    return render_template('it_notifications.html', user=current_user, incidents=IncidentReport.query.order_by(IncidentReport.status.desc(), IncidentReport.date_submitted.desc()).all(), amendments=ProfileAmendment.query.order_by(ProfileAmendment.status.desc(), ProfileAmendment.date_submitted.desc()).all())
 
 @app.route('/resolve-ticket/<string:type>/<int:id>')
 @login_required
 def resolve_ticket(type, id):
-    if current_user.department != 'IT' and current_user.role != 'Super Admin':
-        return redirect(url_for('dashboard'))
-    if type == 'incident':
-        IncidentReport.query.get_or_404(id).status = 'Resolved'
-    elif type == 'amendment':
-        ProfileAmendment.query.get_or_404(id).status = 'Resolved'
+    if current_user.department != 'IT' and current_user.role != 'Super Admin': return redirect(url_for('dashboard'))
+    if type == 'incident': IncidentReport.query.get_or_404(id).status = 'Resolved'
+    elif type == 'amendment': ProfileAmendment.query.get_or_404(id).status = 'Resolved'
     db.session.commit()
     return redirect(url_for('it_notifications'))
 
 @app.route('/export-data/<string:type>')
 @login_required
 def export_data(type):
-    if current_user.department not in ['IT', 'HR'] and current_user.role != 'Super Admin':
-        return redirect(url_for('dashboard'))
+    if current_user.department != 'IT' and current_user.role != 'Super Admin': return redirect(url_for('dashboard'))
     si = io.StringIO(); cw = csv.writer(si)
     if type == 'incidents':
         records = IncidentReport.query.all()
         cw.writerow(['ID', 'Date', 'Agency', 'Reporter', 'Contact', 'Issue', 'Description', 'Status'])
-        for r in records:
-            cw.writerow([
-                r.id,
-                r.date_submitted.strftime('%Y-%m-%d'),
-                r.agency,
-                r.reporter_name,
-                r.contact,
-                r.issue_category,
-                r.description,
-                r.status
-            ])
+        for r in records: cw.writerow([r.id, r.date_submitted.strftime('%Y-%m-%d'), r.agency, r.reporter_name, r.contact, r.issue_category, r.description, r.status])
         filename = "IT_Incident_Reports.csv"
     elif type == 'amendments':
         records = ProfileAmendment.query.all()
         cw.writerow(['ID', 'Date', 'Agency', 'Name', 'Phone', 'Username', 'Request Type', 'Details', 'Status'])
         for r in records:
             details = f"{r.new_role or ''} {r.dept_change or ''} {r.transfer_location or ''}".strip()
-            cw.writerow([
-                r.id,
-                r.date_submitted.strftime('%Y-%m-%d'),
-                r.agency,
-                r.fullname,
-                r.phone,
-                r.t24_username,
-                r.request_type,
-                details,
-                r.status
-            ])
+            cw.writerow([r.id, r.date_submitted.strftime('%Y-%m-%d'), r.agency, r.fullname, r.phone, r.t24_username, r.request_type, details, r.status])
         filename = "T24_Amendment_Requests.csv"
     output = make_response(si.getvalue())
-    output.headers["Content-Disposition"] = f"attachment; filename={filename}"
-    output.headers["Content-type"] = "text/csv"
+    output.headers["Content-Disposition"] = f"attachment; filename={filename}"; output.headers["Content-type"] = "text/csv"
     return output
 
 @app.route('/logout')
@@ -759,6 +427,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
+    with app.app_context(): db.create_all()
     app.run(debug=True)

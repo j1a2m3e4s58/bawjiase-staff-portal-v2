@@ -149,13 +149,7 @@
                     <i class="fas fa-exclamation-triangle"></i> Please correct the highlighted errors.
                 </div>
 
-                <button type="button"
-                        onclick="validateRegistration()"
-                        id="submitBtn"
-                        class="btn btn-success w-100 fw-bold btn-sm py-2"
-                        disabled>
-                    CREATE ACCOUNT
-                </button>
+                <button type="button" onclick="validateRegistration()" id="submitBtn" class="btn btn-success w-100 fw-bold btn-sm py-2" disabled>CREATE ACCOUNT</button>
             </form>
 
             <div class="mt-2 text-center">
@@ -163,7 +157,35 @@
             </div>
         </div>
 
-        <!-- NOTE: Old verification overlays removed, we now rely on email link -->
+        <div id="verificationMessage" class="d-flex flex-column justify-content-center align-items-center w-100" 
+             style="display: none !important; position: absolute; top: 0; left: 0; height: 100%; background: rgba(255,255,255,0.98); z-index: 20; border-radius: 15px;">
+            
+            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center animate-bounce mb-3" style="width: 70px; height: 70px;">
+                <i class="fas fa-envelope-open-text fa-2x"></i>
+            </div>
+            <h5 class="text-success fw-bold">Check Email</h5>
+            <p class="text-dark small mt-1 px-3 mb-3 text-center" style="font-size: 0.8rem;">
+                Code sent to your inbox.<br>Enter it below.
+            </p>
+            <div class="w-75">
+                <input type="text" class="form-control text-center fw-bold letter-spacing-2 mb-2" id="vCode" placeholder="X X X X">
+                <div id="errorCode" class="alert alert-danger p-1 small mb-2 text-center" style="display: none; font-size: 0.7rem;">
+                    Invalid Code.
+                </div>
+                <button type="button" onclick="verifyCode()" class="btn btn-success w-100 fw-bold btn-sm">VERIFY</button>
+            </div>
+        </div>
+
+        <div id="finalSuccess" class="d-flex flex-column justify-content-center align-items-center w-100" 
+             style="display: none !important; position: absolute; top: 0; left: 0; height: 100%; background: white; z-index: 30; border-radius: 15px;">
+            
+            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center animate-pop mb-3" style="width: 100px; height: 100px;">
+                <i class="fas fa-check fa-4x"></i>
+            </div>
+            <h4 class="text-success fw-bold mt-3">Verified!</h4>
+            <p class="text-muted small">Redirecting to login...</p>
+        </div>
+
     </div>
 </div>
 
@@ -183,33 +205,19 @@
 
         // Check Empty
         inputs.forEach(input => {
-            if (!input.value.trim()) {
-                input.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                input.classList.remove('is-invalid');
-            }
+            if (!input.value.trim()) { input.classList.add('is-invalid'); isValid = false; } 
+            else { input.classList.remove('is-invalid'); }
         });
 
         // Check Phone
         let phoneVal = phoneInput.value.replace(/[^0-9]/g, '');
-        if (phoneVal.length < 10) {
-            phoneInput.classList.add('is-invalid');
-            phoneError.style.display = 'block';
-            isValid = false;
-        } else {
-            phoneError.style.display = 'none';
-        }
+        if (phoneVal.length < 10) { phoneInput.classList.add('is-invalid'); phoneError.style.display = 'block'; isValid = false; } 
+        else { phoneError.style.display = 'none'; }
 
         // Check Email
         let email = emailInput.value.trim().toLowerCase();
-        if (!email.endsWith("@bawjiasearearuralbank.com")) {
-            emailInput.classList.add('is-invalid');
-            emailError.style.display = 'block';
-            isValid = false;
-        } else {
-            emailError.style.display = 'none';
-        }
+        if (!email.endsWith("@bawjiasearearuralbank.com")) { emailInput.classList.add('is-invalid'); emailError.style.display = 'block'; isValid = false; } 
+        else { emailError.style.display = 'none'; }
 
         if (!isValid || !isPasswordStrong || !isPasswordMatch) {
             errorBox.style.display = 'block';
@@ -217,8 +225,36 @@
             setTimeout(() => errorBox.style.animation = "none", 500);
         } else {
             errorBox.style.display = 'none';
-            // DIRECT SUBMIT – backend will send real email verification link
-            document.getElementById('regForm').submit();
+            showVerification(); 
+        }
+    }
+
+    // --- TRANSITIONS ---
+    function showVerification() {
+        // Hide Logo Badge
+        document.getElementById('topLogo').style.display = 'none';
+        // Show Verification Overlay
+        document.getElementById('verificationMessage').style.setProperty('display', 'flex', 'important');
+    }
+
+    function verifyCode() {
+        var code = document.getElementById('vCode').value;
+        var errorBox = document.getElementById('errorCode');
+        
+        if (code === '1234') {
+            // Hide Verification
+            document.getElementById('verificationMessage').style.setProperty('display', 'none', 'important');
+            
+            // Show Success Overlay
+            document.getElementById('finalSuccess').style.setProperty('display', 'flex', 'important');
+            
+            // Submit form (which redirects to Login page from backend)
+            setTimeout(function() { 
+                document.getElementById('regForm').submit(); 
+            }, 2000);
+        } else {
+            errorBox.style.display = 'block';
+            setTimeout(function() { errorBox.style.display = 'none'; }, 3000);
         }
     }
 
@@ -236,11 +272,8 @@
         updateRule("ruleUpper", hasUpper);
         updateRule("ruleNum", hasNumSym);
 
-        if (hasLen && hasLower && hasUpper && hasNumSym) {
-            isPasswordStrong = true;
-        } else {
-            isPasswordStrong = false;
-        }
+        if (hasLen && hasLower && hasUpper && hasNumSym) { isPasswordStrong = true; } 
+        else { isPasswordStrong = false; }
 
         checkMatch(); 
         updateSubmitButton();
@@ -250,12 +283,10 @@
         var el = document.getElementById(elementId);
         var icon = el.querySelector("i");
         if (passed) {
-            el.classList.remove("text-danger");
-            el.classList.add("text-success");
+            el.classList.remove("text-danger"); el.classList.add("text-success");
             if(icon) { icon.className = "fas fa-check-circle"; }
         } else {
-            el.classList.remove("text-success");
-            el.classList.add("text-danger");
+            el.classList.remove("text-success"); el.classList.add("text-danger");
             if(icon) { icon.className = "fas fa-circle"; }
         }
     }
@@ -269,44 +300,30 @@
             label.style.visibility = "visible";
             if (p1 === p2) {
                 isPasswordMatch = true;
-                label.className = "badge bg-success";
-                label.innerText = "PASSWORDS MATCH";
-                document.getElementById("regPass2").classList.remove("is-invalid");
-                document.getElementById("regPass2").classList.add("is-valid");
+                label.className = "badge bg-success"; label.innerText = "PASSWORDS MATCH";
+                document.getElementById("regPass2").classList.remove("is-invalid"); document.getElementById("regPass2").classList.add("is-valid");
             } else {
                 isPasswordMatch = false;
-                label.className = "badge bg-danger";
-                label.innerText = "PASSWORDS DO NOT MATCH";
+                label.className = "badge bg-danger"; label.innerText = "PASSWORDS DO NOT MATCH";
                 document.getElementById("regPass2").classList.add("is-invalid");
             }
         } else {
-            label.style.visibility = "hidden";
-            isPasswordMatch = false;
+            label.style.visibility = "hidden"; isPasswordMatch = false;
         }
         updateSubmitButton();
     }
 
     function updateSubmitButton() {
         var btn = document.getElementById("submitBtn");
-        if (isPasswordStrong && isPasswordMatch) {
-            btn.disabled = false;
-        } else {
-            btn.disabled = true;
-        }
+        if (isPasswordStrong && isPasswordMatch) { btn.disabled = false; } 
+        else { btn.disabled = true; }
     }
 
     function toggleRegPassword(fieldId, iconId) {
         var x = document.getElementById(fieldId);
         var icon = document.getElementById(iconId);
-        if (x.type === "password") {
-            x.type = "text";
-            icon.classList.remove("fa-eye");
-            icon.classList.add("fa-eye-slash");
-        } else {
-            x.type = "password";
-            icon.classList.remove("fa-eye-slash");
-            icon.classList.add("fa-eye");
-        }
+        if (x.type === "password") { x.type = "text"; icon.classList.remove("fa-eye"); icon.classList.add("fa-eye-slash"); }
+        else { x.type = "password"; icon.classList.remove("fa-eye-slash"); icon.classList.add("fa-eye"); }
     }
 </script>
 {% endblock %}

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="auth-wrapper">
-    <div class="card glass-card auth-card p-4 fade-in mt-5" style="width: 380px;"> 
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="card glass-card p-4 fade-in mt-5" style="width: 380px;"> 
         
         <div class="logo-badge">
             <img src="{{ url_for('static', filename='img/barb_logo.png') }}" alt="BARB Logo">
@@ -56,16 +56,8 @@
     function togglePassword() {
         var x = document.getElementById("passwordField");
         var icon = document.getElementById("eyeIcon");
-        if (x.type === "password") { 
-            x.type = "text"; 
-            icon.classList.remove("fa-eye"); 
-            icon.classList.add("fa-eye-slash"); 
-        }
-        else { 
-            x.type = "password"; 
-            icon.classList.remove("fa-eye-slash"); 
-            icon.classList.add("fa-eye"); 
-        }
+        if (x.type === "password") { x.type = "text"; icon.classList.remove("fa-eye"); icon.classList.add("fa-eye-slash"); }
+        else { x.type = "password"; icon.classList.remove("fa-eye-slash"); icon.classList.add("fa-eye"); }
     }
     document.getElementById("passwordField").addEventListener("keyup", function(e) {
         document.getElementById("capsWarning").style.display = e.getModifierState("CapsLock") ? "block" : "none";

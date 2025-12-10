@@ -4,22 +4,19 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
-<nav class="navbar navbar-expand-lg glass-card mx-2 mx-md-3 mt-2 mt-md-3 px-2 px-md-3 py-2 sticky-top"
-     style="border-radius: 12px;">
+<nav class="navbar navbar-expand-lg glass-card mx-3 mt-3 px-3 py-2 sticky-top">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
-            <i class="fas fa-arrow-left text-success me-2"></i>
-            <span class="fw-bold text-success small">Back to Dashboard</span>
+            <i class="fas fa-arrow-left text-success me-2"></i> <span class="fw-bold text-success">Back to Dashboard</span>
         </a>
     </div>
 </nav>
 
-<div class="container mt-3 mt-md-4 pb-5 px-2 px-md-0" style="max-width: 800px;">
+<div class="container mt-4 pb-5" style="max-width: 800px;">
     
-    <div class="glass-card p-3 p-md-4 mb-4">
+    <div class="glass-card p-4 mb-4">
         <div class="d-flex align-items-center mb-3">
-            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm"
-                 style="width: 50px; height: 50px; font-size: 1.2rem;">
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 50px; height: 50px; font-size: 1.2rem;">
                 {{ user.email[0].upper() }}
             </div>
             <div>
@@ -28,73 +25,27 @@
             </div>
         </div>
 
-        <form method="POST"
-              action="{{ url_for('news_portal') }}"
-              enctype="multipart/form-data"
-              id="postForm"
-              onsubmit="animatePost(event)">
+        <form method="POST" action="{{ url_for('news_portal') }}" enctype="multipart/form-data" id="postForm" onsubmit="animatePost(event)">
             <div class="mb-3">
-                <input type="text"
-                       name="title"
-                       class="form-control fw-bold border-0 bg-light p-3"
-                       placeholder="Subject..."
-                       required>
+                <input type="text" name="title" class="form-control fw-bold border-0 bg-light p-3" placeholder="Subject..." required>
             </div>
             <div class="mb-3">
-                <textarea name="body"
-                          class="form-control border-0 bg-light p-3"
-                          rows="3"
-                          placeholder="What's happening?"
-                          required></textarea>
+                <textarea name="body" class="form-control border-0 bg-light p-3" rows="3" placeholder="What's happening?" required></textarea>
             </div>
 
-            <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto"
-                id="postTabs"
-                role="tablist"
-                style="white-space: nowrap;">
-                <li class="nav-item">
-                    <button class="nav-link active small"
-                            id="upload-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#upload"
-                            type="button">
-                        <i class="fas fa-paperclip me-2"></i>Attach
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link small"
-                            id="camera-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#camera"
-                            type="button"
-                            onclick="startCamera()">
-                        <i class="fas fa-camera me-2"></i>Camera
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link small"
-                            id="poll-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#poll"
-                            type="button">
-                        <i class="fas fa-poll me-2"></i>Poll
-                    </button>
-                </li>
+            <ul class="nav nav-tabs mb-3" id="postTabs" role="tablist">
+                <li class="nav-item"><button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button"><i class="fas fa-paperclip me-2"></i>Attach</button></li>
+                <li class="nav-item"><button class="nav-link" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera" type="button" onclick="startCamera()"><i class="fas fa-camera me-2"></i>Camera</button></li>
+                <li class="nav-item"><button class="nav-link" id="poll-tab" data-bs-toggle="tab" data-bs-target="#poll" type="button"><i class="fas fa-poll me-2"></i>Poll</button></li>
             </ul>
 
             <div class="tab-content border rounded p-3 bg-white" id="postTabsContent">
                 <div class="tab-pane fade show active" id="upload">
                     <label class="form-label small text-muted">Select File (Image/PDF/Word)</label>
-                    <input type="file"
-                           name="news_image"
-                           class="form-control mb-3"
-                           id="fileUploadInput"
-                           accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+                    <input type="file" name="news_image" class="form-control mb-3" id="fileUploadInput" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" name="allow_download" id="allowDownload" checked>
-                        <label class="form-check-label small fw-bold" for="allowDownload">
-                            Allow Staff to Download File
-                        </label>
+                        <label class="form-check-label small fw-bold" for="allowDownload">Allow Staff to Download File</label>
                         <div class="form-text small">If unchecked, button changes to 'View Only'.</div>
                     </div>
                 </div>
@@ -102,36 +53,18 @@
                 <div class="tab-pane fade" id="camera">
                     <div class="text-center">
                         <div id="cameraArea">
-                            <video id="video"
-                                   width="100%"
-                                   height="auto"
-                                   autoplay
-                                   class="rounded border bg-black"></video>
-                            <button type="button"
-                                    class="btn btn-warning mt-2 rounded-pill"
-                                    onclick="takeSnapshot()">
-                                <i class="fas fa-camera"></i> Snap
-                            </button>
+                            <video id="video" width="100%" height="auto" autoplay class="rounded border bg-black"></video>
+                            <button type="button" class="btn btn-warning mt-2 rounded-pill" onclick="takeSnapshot()"><i class="fas fa-camera"></i> Snap</button>
                         </div>
                         <div id="cropArea" style="display:none;">
                             <img id="imageToCrop" style="max-width: 100%;">
-                            <div class="mt-2 d-flex justify-content-center gap-2 flex-wrap">
-                                <button type="button"
-                                        class="btn btn-secondary rounded-pill"
-                                        onclick="resetCamera()">
-                                    Retake
-                                </button>
-                                <button type="button"
-                                        class="btn btn-success rounded-pill"
-                                        onclick="cropAndSave()">
-                                    <i class="fas fa-crop-alt"></i> Crop & Use
-                                </button>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-secondary rounded-pill" onclick="resetCamera()">Retake</button>
+                                <button type="button" class="btn btn-success rounded-pill" onclick="cropAndSave()"><i class="fas fa-crop-alt"></i> Crop & Use</button>
                             </div>
                         </div>
                         <div id="resultArea" style="display:none;" class="mt-2">
-                            <p class="text-success small mb-1">
-                                <i class="fas fa-check-circle"></i> Ready
-                            </p>
+                            <p class="text-success small"><i class="fas fa-check-circle"></i> Ready</p>
                             <img id="finalImage" class="img-fluid rounded" style="max-height: 200px;">
                         </div>
                     </div>
@@ -139,44 +72,25 @@
 
                 <div class="tab-pane fade" id="poll">
                     <label class="form-label fw-bold">Question</label>
-                    <input type="text"
-                           name="poll_question"
-                           class="form-control mb-2"
-                           placeholder="Ask something...">
+                    <input type="text" name="poll_question" class="form-control mb-2" placeholder="Ask something...">
                     <label class="form-label small text-muted">Options</label>
                     <div id="pollOptions">
-                        <input type="text"
-                               name="poll_options"
-                               class="form-control mb-2"
-                               placeholder="Option 1">
-                        <input type="text"
-                               name="poll_options"
-                               class="form-control mb-2"
-                               placeholder="Option 2">
+                        <input type="text" name="poll_options" class="form-control mb-2" placeholder="Option 1">
+                        <input type="text" name="poll_options" class="form-control mb-2" placeholder="Option 2">
                     </div>
-                    <button type="button"
-                            class="btn btn-sm btn-light border"
-                            onclick="addOption()">
-                        + Add Option
-                    </button>
+                    <button type="button" class="btn btn-sm btn-light border" onclick="addOption()">+ Add Option</button>
                 </div>
             </div>
 
             <div class="text-end mt-3">
-                <button type="submit"
-                        class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
-                    <i class="fas fa-paper-plane me-2"></i> Post Now
-                </button>
+                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm"><i class="fas fa-paper-plane me-2"></i> Post Now</button>
             </div>
         </form>
     </div>
 </div>
 
-<div id="postingOverlay"
-     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:9999; flex-direction:column; align-items:center; justify-content:center;">
-    <div class="animate-fly">
-        <i class="fas fa-paper-plane text-success" style="font-size: 5rem;"></i>
-    </div>
+<div id="postingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:9999; flex-direction:column; align-items:center; justify-content:center;">
+    <div class="animate-fly"><i class="fas fa-paper-plane text-success" style="font-size: 5rem;"></i></div>
     <h3 id="uploadText" class="mt-4 fw-bold text-success animate-fade">Broadcasting...</h3>
 </div>
 
@@ -235,11 +149,7 @@
     }
 </script>
 <style>
-    @keyframes fly {
-        0% { transform: translate(-50px, 50px) scale(0.5); opacity: 0; }
-        50% { transform: translate(0, 0) scale(1.2); opacity: 1; }
-        100% { transform: translate(50px, -50px) scale(1); opacity: 0; }
-    }
+    @keyframes fly { 0% { transform: translate(-50px, 50px) scale(0.5); opacity: 0; } 50% { transform: translate(0, 0) scale(1.2); opacity: 1; } 100% { transform: translate(50px, -50px) scale(1); opacity: 0; } }
     .animate-fly { animation: fly 2s ease-in-out infinite; }
     .animate-fade { animation: fadeIn 1s ease-in; }
     @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
