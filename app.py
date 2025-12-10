@@ -179,6 +179,32 @@ BARB ICT Unit
 """
     mail.send(msg)
 
+def send_inline_verification_code(user, code):
+    """Send a 6-digit verification code to the user's email."""
+    # DEV: log code to console so you can test easily
+    app.logger.info(f"[DEV] Verification code for {user.email}: {code}")
+
+    msg = Message(
+        subject='BARB Staff Portal – Email Verification Code',
+        recipients=[user.email]
+    )
+    msg.body = f"""Dear {user.fullname},
+
+Welcome to the Bawjiase Area Rural Bank Staff Portal.
+
+Use the verification code below to activate your account:
+
+CODE: {code}
+
+This code will expire in 10 minutes.
+
+If you did not create this account, you can safely ignore this email.
+
+Thank you.
+BARB ICT Unit
+"""
+    mail.send(msg)
+
 def send_password_reset_email(user):
     """Send a password reset link to the user's email."""
     token = serializer.dumps(user.email, salt='password-reset')
@@ -264,6 +290,7 @@ def register():
         if User.query.filter_by(email=email).first():
             flash('An account with this email already exists.', 'warning')
             return redirect(url_for('register'))
+
         pw = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
         user = User(
             fullname=request.form.get('fullname'),
@@ -276,14 +303,54 @@ def register():
         user.email_verified = False
         db.session.add(user)
         db.session.commit()
-        send_verification_email(user)
-        # UPDATED MESSAGE
-        flash(
-            'Account created. Check your email and click the verification link before logging in.',
-            'info'
-        )
-        return redirect(url_for('login'))
+
+        # --- NEW: inline verification code flow ---
+        code = f"{secrets.randbelow(1000000):06d}"
+        payload = {'user_id': user.id, 'code': code}
+        verify_token = serializer.dumps(payload, salt='inline-email-code')
+
+        # send code to user's email (logged in console in DEV)
+        send_inline_verification_code(user, code)
+
+        # show code entry screen instead of sending link + redirect
+        return render_template('verify_code.html', email=user.email, token=verify_token)
+
     return render_template('register.html')
+
+@app.route('/verify-code', methods=['POST'])
+def verify_code():
+    token = request.form.get('token')
+    code_entered = (request.form.get('code') or "").strip()
+
+    if not token or not code_entered:
+        flash('Invalid verification attempt.', 'danger')
+        return redirect(url_for('register'))
+
+    try:
+        payload = serializer.loads(token, salt='inline-email-code', max_age=60 * 10)  # 10 minutes
+    except SignatureExpired:
+        flash('Verification code expired. Please register again or request a new code.', 'warning')
+        return redirect(url_for('register'))
+    except BadSignature:
+        flash('Invalid verification code.', 'danger')
+        return redirect(url_for('register'))
+
+    if code_entered != payload.get('code'):
+        user = db.session.get(User, payload.get('user_id'))
+        email = user.email if user else ''
+        flash('Incorrect verification code. Please try again.', 'danger')
+        return render_template('verify_code.html', email=email, token=token)
+
+    user = db.session.get(User, payload.get('user_id'))
+    if not user:
+        flash('User not found for this verification code.', 'danger')
+        return redirect(url_for('register'))
+
+    user.email_verified = True
+    db.session.commit()
+
+    # show success animation page, which will redirect to login
+    return render_template('verify_success.html')
 
 @app.route('/verify/<token>')
 def verify_email(token):
