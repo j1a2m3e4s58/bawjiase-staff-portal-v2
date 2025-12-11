@@ -29,6 +29,8 @@ from flask_bcrypt import Bcrypt
 from flask_mail import Mail, Message
 from datetime import datetime
 from dotenv import load_dotenv  # <-- env support
+# >>> NEW: import for secure reset tokens
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired  # >>> NEW
 
 load_dotenv()  # load .env
 
@@ -36,6 +38,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'bawjiase-secure-key-2025'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bawjiase.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# >>> NEW: salt used for password reset tokens (can also put in .env)
+app.config['SECURITY_PASSWORD_SALT'] = os.environ.get(
+    'SECURITY_PASSWORD_SALT',
+    'bawjiase-reset-salt',
+)  # >>> NEW
 
 # EMAIL CONFIG (uses your env vars / Render)
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'mail.bawjiasearearuralbank.com')
@@ -99,6 +107,31 @@ class User(db.Model, UserMixin):
 
     def get_id(self):
         return str(self.id)
+
+    # >>> NEW: password reset token helpers
+    def get_reset_token(self, expires_sec: int = 1800) -> str:
+        """
+        Generate a signed password reset token valid for expires_sec seconds.
+        """
+        s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+        return s.dumps({'user_id': self.id}, salt=app.config['SECURITY_PASSWORD_SALT'])
+
+    @staticmethod
+    def verify_reset_token(token: str, max_age: int = 1800):
+        """
+        Verify a reset token and return the corresponding user or None.
+        """
+        s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+        try:
+            data = s.loads(
+                token,
+                salt=app.config['SECURITY_PASSWORD_SALT'],
+                max_age=max_age,
+            )
+        except (BadSignature, SignatureExpired):
+            return None
+        return User.query.get(data.get('user_id'))
+    # <<< NEW END
 
 
 class Announcement(db.Model):
@@ -243,6 +276,26 @@ def send_verification_email(recipient_email: str, code: str):
     msg = Message(subject=subject, recipients=[recipient_email])
     msg.body = body
     mail.send(msg)
+
+
+# >>> NEW: HELPER FUNCTION (PASSWORD RESET EMAIL)
+def send_password_reset_email(user: User):  # >>> NEW
+    token = user.get_reset_token()
+    reset_url = url_for('reset_password', token=token, _external=True)
+    subject = "Bawjiase Staff Portal - Password Reset"
+    body = (
+        f"Dear {user.fullname},\n\n"
+        f"You requested to reset your password for the Bawjiase Staff Portal.\n\n"
+        f"Please click the link below to set a new password (valid for 30 minutes):\n\n"
+        f"{reset_url}\n\n"
+        f"If you did not request this, please ignore this email.\n\n"
+        f"Thank you.\n"
+        f"Bawjiase Area Rural Bank PLC"
+    )
+    msg = Message(subject=subject, recipients=[user.email])
+    msg.body = body
+    mail.send(msg)
+# <<< NEW END
 
 
 # --- ROUTES ---
@@ -427,9 +480,69 @@ def change_email():
     return redirect(url_for('register'))
 
 
-@app.route('/forgot-password')
+# >>> CHANGED: forgot-password now supports POST and passes "success" to template
+@app.route('/forgot-password', methods=['GET', 'POST'])  # >>> NEW
 def forgot_password():
-    return render_template('forgot_password.html')
+    success = False
+    if request.method == 'POST':
+        email = (request.form.get('email') or '').strip().lower()
+
+        # enforce official domain for reset as well
+        if not email.endswith(OFFICIAL_EMAIL_DOMAIN):
+            flash('Please enter your official Bawjiase staff email.', 'danger')
+            return render_template('forgot_password.html', success=False)
+
+        user = User.query.filter_by(email=email).first()
+
+        if user:
+            try:
+                send_password_reset_email(user)
+            except Exception:
+                # If email sending fails, inform user but keep UI consistent
+                flash('We could not send the reset email. Please contact IT.', 'danger')
+                return render_template('forgot_password.html', success=False)
+
+        # Always show generic success message
+        success = True
+        flash('If an account with that email exists, a reset link has been sent.', 'success')
+
+    return render_template('forgot_password.html', success=success)
+# <<< END CHANGED
+
+
+# >>> NEW: reset-password route
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])  # >>> NEW
+def reset_password(token):
+    user = User.verify_reset_token(token)
+    if user is None:
+        flash('That reset link is invalid or has expired. Please request a new one.', 'danger')
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        password = (request.form.get('password') or '').strip()
+        confirm_password = (request.form.get('confirm_password') or '').strip()
+
+        if not password or not confirm_password:
+            flash('Please fill in all password fields.', 'danger')
+            return render_template('reset_password.html', token=token)
+
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return render_template('reset_password.html', token=token)
+
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+            return render_template('reset_password.html', token=token)
+
+        hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+        user.password = hashed_pw
+        db.session.commit()
+
+        flash('Your password has been updated. You can now log in.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html', token=token)
+# <<< NEW END
 
 
 @app.route('/dashboard')
