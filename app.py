@@ -46,7 +46,10 @@ app.config['SECURITY_PASSWORD_SALT'] = os.environ.get(
 )  # >>> NEW
 
 # EMAIL CONFIG (uses your env vars / Render)
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'mail.bawjiasearearuralbank.com')
+app.config['MAIL_SERVER'] = os.environ.get(
+    'MAIL_SERVER',
+    'mail.bawjiasearearuralbank.com',
+)
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 465))
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
@@ -114,7 +117,10 @@ class User(db.Model, UserMixin):
         Generate a signed password reset token valid for expires_sec seconds.
         """
         s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-        return s.dumps({'user_id': self.id}, salt=app.config['SECURITY_PASSWORD_SALT'])
+        return s.dumps(
+            {'user_id': self.id},
+            salt=app.config['SECURITY_PASSWORD_SALT'],
+        )
 
     @staticmethod
     def verify_reset_token(token: str, max_age: int = 1800):
@@ -155,7 +161,11 @@ class Announcement(db.Model):
 class Poll(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.String(200), nullable=False)
-    announcement_id = db.Column(db.Integer, db.ForeignKey('announcement.id'), nullable=False)
+    announcement_id = db.Column(
+        db.Integer,
+        db.ForeignKey('announcement.id'),
+        nullable=False,
+    )
     options = db.relationship(
         'PollOption',
         backref='poll',
@@ -375,7 +385,7 @@ def register():
                 'Registration successful. A verification code has been sent to your inbox or spam.',
                 'success',
             )
-        except Exception as e:  # <<< CHANGED: now logs the error
+        except Exception:
             app.logger.exception("Verification email failed")
             flash(
                 'Account created but we could not send the verification email. Please contact IT.',
@@ -481,8 +491,8 @@ def change_email():
     return redirect(url_for('register'))
 
 
-# >>> CHANGED: forgot-password now supports POST and passes "success" to template
-@app.route('/forgot-password', methods=['GET', 'POST'])  # >>> NEW
+# forgot-password with POST and success flag
+@app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     success = False
     if request.method == 'POST':
@@ -499,7 +509,6 @@ def forgot_password():
             try:
                 send_password_reset_email(user)
             except Exception:
-                # If email sending fails, inform user but keep UI consistent
                 flash('We could not send the reset email. Please contact IT.', 'danger')
                 return render_template('forgot_password.html', success=False)
 
@@ -508,11 +517,10 @@ def forgot_password():
         flash('If an account with that email exists, a reset link has been sent.', 'success')
 
     return render_template('forgot_password.html', success=success)
-# <<< END CHANGED
 
 
-# >>> NEW: reset-password route
-@app.route('/reset-password/<token>', methods=['GET', 'POST'])  # >>> NEW
+# reset-password route
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     user = User.verify_reset_token(token)
     if user is None:
@@ -543,10 +551,9 @@ def reset_password(token):
         return redirect(url_for('login'))
 
     return render_template('reset_password.html', token=token)
-# <<< NEW END
 
 
-# >>> NEW: simple test-mail route for debugging SMTP on Render
+# simple test-mail route for debugging SMTP on Render
 @app.route('/test-mail')
 def test_mail():
     """Simple route to test SMTP configuration."""
@@ -565,7 +572,6 @@ def test_mail():
     except Exception as e:
         app.logger.exception("Test email failed")
         return f"Error while sending test email: {e}", 500
-# <<< NEW END
 
 
 @app.route('/dashboard')
