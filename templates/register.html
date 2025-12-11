@@ -27,8 +27,18 @@
     }
 
     /* 3. Animation Styles */
-    @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
-    @keyframes pop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); } }
+    @keyframes shake {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        50% { transform: translateX(5px); }
+        75% { transform: translateX(-5px); }
+        100% { transform: translateX(0); }
+    }
+    @keyframes pop {
+        0% { transform: scale(0); opacity: 0; }
+        60% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(1); }
+    }
     .animate-pop { animation: pop 0.5s ease-out forwards; }
 </style>
 
@@ -43,7 +53,7 @@
             <h5 class="text-center text-dark fw-bold mb-1 mt-3">Staff Registration</h5>
             <p class="text-center small text-muted mb-3">Create your secure account</p>
             
-            <form id="regForm" method="POST"> 
+            <form id="regForm" method="POST" action="{{ url_for('register') }}"> 
                 
                 <div class="row g-2 mb-2">
                     <div class="col-6">
@@ -152,6 +162,15 @@
                 <button type="button" onclick="validateRegistration()" id="submitBtn" class="btn btn-success w-100 fw-bold btn-sm py-2" disabled>CREATE ACCOUNT</button>
             </form>
 
+            <!-- Hidden form used to send OTP to backend for verification -->
+            <form id="otpForm" method="POST" action="{{ url_for('verify_email') }}" style="display: none;">
+                <input type="hidden" name="code" id="otpHiddenCode">
+            </form>
+
+            <!-- Hidden forms for resend + change email -->
+            <form id="resendForm" method="POST" action="{{ url_for('resend_verification') }}" style="display: none;"></form>
+            <form id="changeEmailForm" method="GET" action="{{ url_for('change_email') }}" style="display: none;"></form>
+
             <div class="mt-2 text-center">
                 <a href="{{ url_for('login') }}" class="small text-secondary" style="font-size: 0.75rem;">Back to Login</a>
             </div>
@@ -164,15 +183,24 @@
                 <i class="fas fa-envelope-open-text fa-2x"></i>
             </div>
             <h5 class="text-success fw-bold">Check Email</h5>
-            <p class="text-dark small mt-1 px-3 mb-3 text-center" style="font-size: 0.8rem;">
-                Code sent to your inbox.<br>Enter it below.
+            <p class="text-dark small mt-1 px-3 mb-2 text-center" style="font-size: 0.8rem;">
+                We sent a verification code to<br>
+                <strong>{{ email if email else 'your official email' }}</strong><br>
+                Please check your <strong>Inbox</strong> or <strong>Spam</strong>.
             </p>
             <div class="w-75">
                 <input type="text" class="form-control text-center fw-bold letter-spacing-2 mb-2" id="vCode" placeholder="X X X X">
                 <div id="errorCode" class="alert alert-danger p-1 small mb-2 text-center" style="display: none; font-size: 0.7rem;">
                     Invalid Code.
                 </div>
-                <button type="button" onclick="verifyCode()" class="btn btn-success w-100 fw-bold btn-sm">VERIFY</button>
+                <button type="button" onclick="verifyCode()" class="btn btn-success w-100 fw-bold btn-sm mb-2">VERIFY</button>
+
+                <button type="button" onclick="resendCode()" class="btn btn-link w-100 p-0 mb-1" style="font-size: 0.75rem;">
+                    Resend code
+                </button>
+                <button type="button" onclick="changeEmail()" class="btn btn-link w-100 p-0" style="font-size: 0.75rem;">
+                    Change email
+                </button>
             </div>
         </div>
 
@@ -189,7 +217,32 @@
     </div>
 </div>
 
+<!-- Backend flags for verification overlay -->
+<div id="verificationFlags"
+     data-show="{{ 'true' if show_verification else 'false' }}"
+     data-invalid="{{ 'true' if invalid_code else 'false' }}">
+</div>
+
 <script>
+    // Read flags from hidden div rendered by backend
+    document.addEventListener('DOMContentLoaded', function() {
+        var flags = document.getElementById('verificationFlags');
+        if (!flags) return;
+
+        var showVerificationFromServer = flags.getAttribute('data-show') === 'true';
+        var invalidCodeFromServer = flags.getAttribute('data-invalid') === 'true';
+
+        if (showVerificationFromServer) {
+            showVerification();
+            if (invalidCodeFromServer) {
+                var errorBox = document.getElementById('errorCode');
+                if (errorBox) {
+                    errorBox.style.display = 'block';
+                }
+            }
+        }
+    });
+
     // --- VALIDATION LOGIC ---
     let isPasswordStrong = false;
     let isPasswordMatch = false;
@@ -225,37 +278,44 @@
             setTimeout(() => errorBox.style.animation = "none", 500);
         } else {
             errorBox.style.display = 'none';
-            showVerification(); 
+            // Now submit to backend to create user and send real OTP
+            document.getElementById('regForm').submit();
         }
     }
 
     // --- TRANSITIONS ---
     function showVerification() {
         // Hide Logo Badge
-        document.getElementById('topLogo').style.display = 'none';
+        var logo = document.getElementById('topLogo');
+        if (logo) {
+            logo.style.display = 'none';
+        }
         // Show Verification Overlay
         document.getElementById('verificationMessage').style.setProperty('display', 'flex', 'important');
     }
 
     function verifyCode() {
-        var code = document.getElementById('vCode').value;
+        var code = document.getElementById('vCode').value.trim();
         var errorBox = document.getElementById('errorCode');
         
-        if (code === '1234') {
-            // Hide Verification
-            document.getElementById('verificationMessage').style.setProperty('display', 'none', 'important');
-            
-            // Show Success Overlay
-            document.getElementById('finalSuccess').style.setProperty('display', 'flex', 'important');
-            
-            // Submit form (which redirects to Login page from backend)
-            setTimeout(function() { 
-                document.getElementById('regForm').submit(); 
-            }, 2000);
-        } else {
+        if (!code) {
+            errorBox.textContent = "Please enter the verification code.";
             errorBox.style.display = 'block';
             setTimeout(function() { errorBox.style.display = 'none'; }, 3000);
+            return;
         }
+
+        // send code to backend for real verification
+        document.getElementById('otpHiddenCode').value = code;
+        document.getElementById('otpForm').submit();
+    }
+
+    function resendCode() {
+        document.getElementById('resendForm').submit();
+    }
+
+    function changeEmail() {
+        document.getElementById('changeEmailForm').submit();
     }
 
     // --- PASSWORD LOGIC ---

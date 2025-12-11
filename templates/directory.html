@@ -30,19 +30,36 @@
                         {{ staff.email[0].upper() }}
                     </div>
                     <div>
-                        <h6 class="fw-bold mb-0 text-dark staff-text">{{ staff.fullname }}</h6>
+                        <h6 class="fw-bold mb-0 text-dark staff-text">
+                            {{ staff.fullname }}
+                            {% if staff.is_verified %}
+                                <span class="badge bg-success ms-1" style="font-size: 0.65rem;">
+                                    <i class="fas fa-check-circle"></i>
+                                </span>
+                            {% endif %}
+                        </h6>
                         <span class="badge bg-light text-secondary border mt-1">{{ staff.position or staff.role }}</span>
                     </div>
                 </div>
 
                 <div class="col-md-3 mb-2 mb-md-0">
-                    <div class="small text-muted mb-1"><i class="fas fa-phone me-2 text-warning"></i>{{ staff.phone }}</div>
-                    <div class="small text-muted"><i class="fas fa-envelope me-2 text-primary"></i>{{ staff.email }}</div>
+                    <div class="small text-muted mb-1">
+                        <i class="fas fa-phone me-2 text-warning"></i>{{ staff.phone }}
+                    </div>
+                    <div class="small text-muted">
+                        <i class="fas fa-envelope me-2 text-primary"></i>{{ staff.email }}
+                    </div>
                 </div>
 
                 <div class="col-md-3 mb-2 mb-md-0">
-                    <div class="small text-muted mb-1"><i class="fas fa-building me-2 text-success"></i><span class="staff-text">{{ staff.branch }}</span></div>
-                    <div class="small text-muted"><i class="fas fa-briefcase me-2 text-info"></i><span class="staff-text">{{ staff.department }}</span></div>
+                    <div class="small text-muted mb-1">
+                        <i class="fas fa-building me-2 text-success"></i>
+                        <span class="staff-text">{{ staff.branch }}</span>
+                    </div>
+                    <div class="small text-muted">
+                        <i class="fas fa-briefcase me-2 text-info"></i>
+                        <span class="staff-text">{{ staff.department }}</span>
+                    </div>
                 </div>
 
                 {% if user.department in ['IT', 'HR'] or user.role == 'Super Admin' %}
@@ -155,9 +172,6 @@
         // 3. Set Department Dropdown (It will auto-select if value matches)
         let deptSelect = document.getElementById('modalDept');
         deptSelect.value = dept; 
-
-        // If the current dept isn't in the list (e.g. typo), it defaults to empty.
-        // You can handle that here if needed, but usually it's fine.
 
         // 4. Show Modal
         document.getElementById('adminEditModal').style.display = 'block';

@@ -4,7 +4,8 @@
 <nav class="navbar navbar-expand-lg glass-card mx-3 mt-3 px-3 py-2 sticky-top">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
-            <i class="fas fa-arrow-left text-success me-2"></i> <span class="fw-bold text-success">Back to Dashboard</span>
+            <i class="fas fa-arrow-left text-success me-2"></i> 
+            <span class="fw-bold text-success">Back to Dashboard</span>
         </a>
     </div>
 </nav>
@@ -39,7 +40,14 @@
                     <input type="file" id="fileInput" name="profile_pic" class="d-none" onchange="this.form.submit()">
                 </div>
                 
-                <h3 class="fw-bold text-dark mt-3">{{ user.fullname }}</h3>
+                <h3 class="fw-bold text-dark mt-3">
+                    {{ user.fullname }}
+                    {% if user.is_verified %}
+                        <span class="badge bg-success ms-2" style="font-size: 0.75rem;">
+                            <i class="fas fa-check-circle me-1"></i>Verified
+                        </span>
+                    {% endif %}
+                </h3>
                 <p class="text-muted">{{ user.position or user.role }} | {{ user.branch }}</p>
             </div>
 
@@ -55,16 +63,32 @@
                 <div class="col-md-6">
                     <label class="form-label fw-bold small text-muted">Email (Read Only)</label>
                     <input type="text" class="form-control bg-light" value="{{ user.email }}" readonly>
+                    {% if user.is_verified %}
+                        <small class="text-success fw-semibold mt-1 d-block">
+                            <i class="fas fa-check-circle me-1"></i> Email verified
+                        </small>
+                    {% else %}
+                        <small class="text-warning fw-semibold mt-1 d-block">
+                            <i class="fas fa-exclamation-circle me-1"></i> Email not verified
+                        </small>
+                    {% endif %}
                 </div>
                 
                 <hr class="my-4">
-                <h6 class="fw-bold text-primary mb-3"><i class="fas fa-exchange-alt me-2"></i>Update Transfer Details</h6>
+                <h6 class="fw-bold text-primary mb-3">
+                    <i class="fas fa-exchange-alt me-2"></i>Update Transfer Details
+                </h6>
                 
                 <div class="col-md-6">
                     <label class="form-label fw-bold small text-muted">Current Branch</label>
                     <select class="form-select" name="branch" required>
                         <option value="{{ user.branch }}" selected>{{ user.branch }}</option>
-                        <option>HEAD OFFICE</option><option>BAWJIASE</option><option>ADEISO</option><option>OFAAKOR</option><option>KASOA NEW MARKET</option><option>KASOA MAIN</option>
+                        <option>HEAD OFFICE</option>
+                        <option>BAWJIASE</option>
+                        <option>ADEISO</option>
+                        <option>OFAAKOR</option>
+                        <option>KASOA NEW MARKET</option>
+                        <option>KASOA MAIN</option>
                     </select>
                 </div>
                 <div class="col-md-6">
