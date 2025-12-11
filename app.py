@@ -375,7 +375,8 @@ def register():
                 'Registration successful. A verification code has been sent to your inbox or spam.',
                 'success',
             )
-        except Exception:
+        except Exception as e:  # <<< CHANGED: now logs the error
+            app.logger.exception("Verification email failed")
             flash(
                 'Account created but we could not send the verification email. Please contact IT.',
                 'danger',
@@ -542,6 +543,28 @@ def reset_password(token):
         return redirect(url_for('login'))
 
     return render_template('reset_password.html', token=token)
+# <<< NEW END
+
+
+# >>> NEW: simple test-mail route for debugging SMTP on Render
+@app.route('/test-mail')
+def test_mail():
+    """Simple route to test SMTP configuration."""
+    try:
+        # TODO: change this to an email you can receive
+        recipient = "your-email@bawjiasearearuralbank.com"
+
+        msg = Message(
+            subject="TEST EMAIL - BARB Staff Portal (Render)",
+            recipients=[recipient],
+        )
+        msg.body = "If you see this message, SMTP from Render is working."
+
+        mail.send(msg)
+        return f"Test email sent to {recipient}"
+    except Exception as e:
+        app.logger.exception("Test email failed")
+        return f"Error while sending test email: {e}", 500
 # <<< NEW END
 
 
